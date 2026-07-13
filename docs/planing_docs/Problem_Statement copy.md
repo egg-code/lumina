@@ -1,0 +1,3 @@
+# Problem Statement
+
+Myanmar students and recent graduates who are in transition to career encounter significant difficulties navigating their desired career pathways. Without proper guidance, many waste years trying to figure out the exact career path and the skills needed to achieve their career goal and live with uncertainties. Therefore, it is absolutely essential to provide opportunities for them to engage with and learn from professionals across different sectors. This will enable them to clearly identify their target career paths, understand the specific skills required to get there, and map out a realistic timeframe to achieve their goals.

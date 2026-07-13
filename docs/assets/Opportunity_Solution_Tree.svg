@@ -1,0 +1,128 @@
+<svg width="1200" height="520" viewBox="0 0 1200 520" xmlns="http://www.w3.org/2000/svg" role="img" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <title>Opportunity Solution Tree — Myanmar Career Mentorship</title>
+  <desc>A tree diagram showing one desired outcome, three opportunities derived from interview evidence, and two candidate solutions under each opportunity.</desc>
+
+  <rect x="0" y="0" width="1200" height="520" fill="#FFFFFF"/>
+
+  <text x="600" y="28" text-anchor="middle" font-size="20" font-weight="500" fill="#2C2C2A">Opportunity Solution Tree — Myanmar Career Mentorship</text>
+  <text x="600" y="48" text-anchor="middle" font-size="13" fill="#5F5E5A">Built from a 9-interview synthesis (8 students/grads + 1 mentor/coach)</text>
+
+  <!-- Connectors -->
+  <g stroke="#9C9A92" stroke-width="1.5" stroke-linecap="round" fill="none">
+    <line x1="600" y1="150" x2="600" y2="178"/>
+    <line x1="210" y1="178" x2="990" y2="178"/>
+    <line x1="210" y1="178" x2="210" y2="190"/>
+    <line x1="600" y1="178" x2="600" y2="190"/>
+    <line x1="990" y1="178" x2="990" y2="190"/>
+
+    <line x1="210" y1="310" x2="210" y2="330"/>
+    <line x1="115" y1="330" x2="305" y2="330"/>
+    <line x1="115" y1="330" x2="115" y2="345"/>
+    <line x1="305" y1="330" x2="305" y2="345"/>
+
+    <line x1="600" y1="310" x2="600" y2="330"/>
+    <line x1="505" y1="330" x2="695" y2="330"/>
+    <line x1="505" y1="330" x2="505" y2="345"/>
+    <line x1="695" y1="330" x2="695" y2="345"/>
+
+    <line x1="990" y1="310" x2="990" y2="330"/>
+    <line x1="895" y1="330" x2="1085" y2="330"/>
+    <line x1="895" y1="330" x2="895" y2="345"/>
+    <line x1="1085" y1="330" x2="1085" y2="345"/>
+  </g>
+
+  <!-- Root: desired outcome -->
+  <g>
+    <rect x="325" y="65" width="550" height="85" rx="10" fill="#F1EFE8" stroke="#888780" stroke-width="1.5"/>
+    <text x="600" y="92" text-anchor="middle" font-size="15" font-weight="500" fill="#2C2C2A">Desired outcome</text>
+    <text x="600" y="114" text-anchor="middle" font-size="13" fill="#444441">Provide a clear career path for people</text>
+    <text x="600" y="132" text-anchor="middle" font-size="13" fill="#444441">navigating career uncertainty</text>
+  </g>
+
+  <!-- Opportunity 1 (blue) -->
+  <g>
+    <rect x="30" y="190" width="360" height="120" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.5"/>
+    <text x="210" y="215" text-anchor="middle" font-size="15" font-weight="500" fill="#0C447C">Opportunity 1</text>
+    <text x="210" y="240" text-anchor="middle" font-size="13" fill="#185FA5">Broad field, but no</text>
+    <text x="210" y="258" text-anchor="middle" font-size="13" fill="#185FA5">specific job title, skills,</text>
+    <text x="210" y="276" text-anchor="middle" font-size="13" fill="#185FA5">or timeline</text>
+  </g>
+
+  <!-- Opportunity 2 (teal) -->
+  <g>
+    <rect x="420" y="190" width="360" height="120" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
+    <text x="600" y="215" text-anchor="middle" font-size="15" font-weight="500" fill="#085041">Opportunity 2</text>
+    <text x="600" y="240" text-anchor="middle" font-size="13" fill="#0F6E56">Can't find or reach</text>
+    <text x="600" y="258" text-anchor="middle" font-size="13" fill="#0F6E56">someone on their exact,</text>
+    <text x="600" y="276" text-anchor="middle" font-size="13" fill="#0F6E56">narrow path</text>
+  </g>
+
+  <!-- Opportunity 3 (coral) -->
+  <g>
+    <rect x="810" y="190" width="360" height="120" rx="10" fill="#FAECE7" stroke="#993C1D" stroke-width="1.5"/>
+    <text x="990" y="215" text-anchor="middle" font-size="15" font-weight="500" fill="#4A1B0C">Opportunity 3</text>
+    <text x="990" y="240" text-anchor="middle" font-size="13" fill="#993C1D">One-off advice doesn't</text>
+    <text x="990" y="258" text-anchor="middle" font-size="13" fill="#993C1D">stick — sustained structure</text>
+    <text x="990" y="276" text-anchor="middle" font-size="13" fill="#993C1D">does</text>
+  </g>
+
+  <!-- Solution 1.1 -->
+  <g>
+    <rect x="30" y="345" width="170" height="150" rx="8" fill="#FFFFFF" stroke="#185FA5" stroke-width="1.25"/>
+    <text x="115" y="368" text-anchor="middle" font-size="13" font-weight="500" fill="#2C2C2A">Solution 1.1</text>
+    <text x="115" y="388" text-anchor="middle" font-size="12" font-weight="500" fill="#185FA5">Field-to-role</text>
+    <text x="115" y="404" text-anchor="middle" font-size="12" font-weight="500" fill="#185FA5">explorer</text>
+    <text x="115" y="428" text-anchor="middle" font-size="12" fill="#5F5E5A">Maps interests to</text>
+    <text x="115" y="446" text-anchor="middle" font-size="12" fill="#5F5E5A">concrete job paths</text>
+  </g>
+
+  <!-- Solution 1.2 -->
+  <g>
+    <rect x="220" y="345" width="170" height="150" rx="8" fill="#FFFFFF" stroke="#185FA5" stroke-width="1.25"/>
+    <text x="305" y="368" text-anchor="middle" font-size="13" font-weight="500" fill="#2C2C2A">Solution 1.2</text>
+    <text x="305" y="388" text-anchor="middle" font-size="12" font-weight="500" fill="#185FA5">"Try-it"</text>
+    <text x="305" y="404" text-anchor="middle" font-size="12" font-weight="500" fill="#185FA5">micro-sprints</text>
+    <text x="305" y="428" text-anchor="middle" font-size="12" fill="#5F5E5A">1-2 week trials with</text>
+    <text x="305" y="446" text-anchor="middle" font-size="12" fill="#5F5E5A">a skills checklist</text>
+  </g>
+
+  <!-- Solution 2.1 -->
+  <g>
+    <rect x="420" y="345" width="170" height="150" rx="8" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.25"/>
+    <text x="505" y="368" text-anchor="middle" font-size="13" font-weight="500" fill="#2C2C2A">Solution 2.1</text>
+    <text x="505" y="388" text-anchor="middle" font-size="12" font-weight="500" fill="#0F6E56">Niche mentor</text>
+    <text x="505" y="404" text-anchor="middle" font-size="12" font-weight="500" fill="#0F6E56">directory</text>
+    <text x="505" y="428" text-anchor="middle" font-size="12" fill="#5F5E5A">Profiles tagged by</text>
+    <text x="505" y="446" text-anchor="middle" font-size="12" fill="#5F5E5A">narrow sub-field</text>
+  </g>
+
+  <!-- Solution 2.2 -->
+  <g>
+    <rect x="610" y="345" width="170" height="150" rx="8" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.25"/>
+    <text x="695" y="368" text-anchor="middle" font-size="13" font-weight="500" fill="#2C2C2A">Solution 2.2</text>
+    <text x="695" y="388" text-anchor="middle" font-size="12" font-weight="500" fill="#0F6E56">Warm-tie</text>
+    <text x="695" y="404" text-anchor="middle" font-size="12" font-weight="500" fill="#0F6E56">matching</text>
+    <text x="695" y="428" text-anchor="middle" font-size="12" fill="#5F5E5A">Prioritizes peers</text>
+    <text x="695" y="446" text-anchor="middle" font-size="12" fill="#5F5E5A">1-3 years ahead</text>
+  </g>
+
+  <!-- Solution 3.1 -->
+  <g>
+    <rect x="810" y="345" width="170" height="150" rx="8" fill="#FFFFFF" stroke="#993C1D" stroke-width="1.25"/>
+    <text x="895" y="368" text-anchor="middle" font-size="13" font-weight="500" fill="#2C2C2A">Solution 3.1</text>
+    <text x="895" y="388" text-anchor="middle" font-size="12" font-weight="500" fill="#993C1D">Structured</text>
+    <text x="895" y="404" text-anchor="middle" font-size="12" font-weight="500" fill="#993C1D">mentoring track</text>
+    <text x="895" y="428" text-anchor="middle" font-size="12" fill="#5F5E5A">Multi-month program</text>
+    <text x="895" y="446" text-anchor="middle" font-size="12" fill="#5F5E5A">with milestones</text>
+  </g>
+
+  <!-- Solution 3.2 -->
+  <g>
+    <rect x="1000" y="345" width="170" height="150" rx="8" fill="#FFFFFF" stroke="#993C1D" stroke-width="1.25"/>
+    <text x="1085" y="368" text-anchor="middle" font-size="13" font-weight="500" fill="#2C2C2A">Solution 3.2</text>
+    <text x="1085" y="388" text-anchor="middle" font-size="12" font-weight="500" fill="#993C1D">Async AI</text>
+    <text x="1085" y="404" text-anchor="middle" font-size="12" font-weight="500" fill="#993C1D">coordinator</text>
+    <text x="1085" y="428" text-anchor="middle" font-size="12" fill="#5F5E5A">Auto-generates</text>
+    <text x="1085" y="446" text-anchor="middle" font-size="12" fill="#5F5E5A">roadmaps in Burmese</text>
+  </g>
+</svg>

@@ -1,0 +1,122 @@
+<svg viewBox="0 0 850 900" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="850" height="900" fill="#ffffff"/>
+
+  <text x="425" y="32" text-anchor="middle" font-size="22" font-weight="bold" fill="#1a1a1a">Impact / Effort Matrix — OST Solutions</text>
+  <text x="425" y="54" text-anchor="middle" font-size="13" fill="#666666">Scored 0–10. Quadrant boundary at the midpoint (5) on each axis.</text>
+
+  <!-- Quadrant backgrounds: plot area x:[100,750] y:[70,700] boundary at x=425, y=385 -->
+  <rect x="100" y="70"  width="325" height="315" fill="#e8f5e9" stroke="none"/>
+  <rect x="425" y="70"  width="325" height="315" fill="#e3f2fd" stroke="none"/>
+  <rect x="100" y="385" width="325" height="315" fill="#fff8e1" stroke="none"/>
+  <rect x="425" y="385" width="325" height="315" fill="#fce4ec" stroke="none"/>
+
+  <!-- Quadrant labels -->
+  <text x="115" y="92" font-size="14" font-weight="bold" fill="#2e7d32">QUICK WIN</text>
+  <text x="115" y="108" font-size="10" fill="#2e7d32">high impact, low effort</text>
+
+  <text x="740" y="92" text-anchor="end" font-size="14" font-weight="bold" fill="#1565c0">BIG BET</text>
+  <text x="740" y="108" text-anchor="end" font-size="10" fill="#1565c0">high impact, high effort</text>
+
+  <text x="115" y="675" font-size="14" font-weight="bold" fill="#e65100">FILL-IN</text>
+  <text x="115" y="691" font-size="10" fill="#e65100">low impact, low effort</text>
+
+  <text x="740" y="675" text-anchor="end" font-size="14" font-weight="bold" fill="#c62828">RECONSIDER</text>
+  <text x="740" y="691" text-anchor="end" font-size="10" fill="#c62828">low impact, high effort</text>
+
+  <!-- Gridlines every 2 units -->
+  <g stroke="#d0d0d0" stroke-width="1">
+    <line x1="165" y1="70" x2="165" y2="700"/>
+    <line x1="230" y1="70" x2="230" y2="700"/>
+    <line x1="295" y1="70" x2="295" y2="700"/>
+    <line x1="360" y1="70" x2="360" y2="700"/>
+    <line x1="490" y1="70" x2="490" y2="700"/>
+    <line x1="555" y1="70" x2="555" y2="700"/>
+    <line x1="620" y1="70" x2="620" y2="700"/>
+    <line x1="685" y1="70" x2="685" y2="700"/>
+
+    <line x1="100" y1="135" x2="750" y2="135"/>
+    <line x1="100" y1="200" x2="750" y2="200"/>
+    <line x1="100" y1="265" x2="750" y2="265"/>
+    <line x1="100" y1="330" x2="750" y2="330"/>
+    <line x1="100" y1="450" x2="750" y2="450"/>
+    <line x1="100" y1="515" x2="750" y2="515"/>
+    <line x1="100" y1="580" x2="750" y2="580"/>
+    <line x1="100" y1="645" x2="750" y2="645"/>
+  </g>
+
+  <!-- Midpoint boundary lines -->
+  <line x1="425" y1="70" x2="425" y2="700" stroke="#999999" stroke-width="2" stroke-dasharray="6,4"/>
+  <line x1="100" y1="385" x2="750" y2="385" stroke="#999999" stroke-width="2" stroke-dasharray="6,4"/>
+
+  <!-- Axes -->
+  <line x1="100" y1="700" x2="750" y2="700" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="100" y1="70"  x2="100" y2="700" stroke="#1a1a1a" stroke-width="2"/>
+
+  <!-- X axis ticks/labels (Effort 0-10) -->
+  <g font-size="11" fill="#444444" text-anchor="middle">
+    <text x="100" y="718">0</text>
+    <text x="230" y="718">2</text>
+    <text x="360" y="718">4</text>
+    <text x="490" y="718">6</text>
+    <text x="620" y="718">8</text>
+    <text x="750" y="718">10</text>
+  </g>
+  <text x="425" y="742" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Effort →</text>
+
+  <!-- Y axis ticks/labels (Impact 0-10) -->
+  <g font-size="11" fill="#444444" text-anchor="end">
+    <text x="90" y="704">0</text>
+    <text x="90" y="574">2</text>
+    <text x="90" y="444">4</text>
+    <text x="90" y="314">6</text>
+    <text x="90" y="184">8</text>
+    <text x="90" y="74">10</text>
+  </g>
+  <text x="35" y="385" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a" transform="rotate(-90 35 385)">Impact →</text>
+
+  <!-- Data points: x = 100 + effort*65, y = 700 - impact*65 -->
+  <!-- 1. Field-to-role mapper (Impact 7, Effort 4) -> Quick win -->
+  <circle cx="360" cy="245" r="16" fill="#66bb6a" stroke="#2e7d32" stroke-width="2"/>
+  <text x="360" y="250" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">1</text>
+
+  <!-- 2. Try-it micro-sprints (Impact 8.5, Effort 6.5) -> Big bet -->
+  <circle cx="522.5" cy="147.5" r="16" fill="#42a5f5" stroke="#1565c0" stroke-width="2"/>
+  <text x="522.5" y="152.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">2</text>
+
+  <!-- 3. Niche-tag mentor/peer directory (Impact 6.5, Effort 8) -> Big bet -->
+  <circle cx="620" cy="277.5" r="16" fill="#42a5f5" stroke="#1565c0" stroke-width="2"/>
+  <text x="620" y="282.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">3</text>
+
+  <!-- 4. Warm-tie / near-peer matching (Impact 9, Effort 3) -> Quick win -->
+  <circle cx="295" cy="115" r="16" fill="#66bb6a" stroke="#2e7d32" stroke-width="2"/>
+  <text x="295" y="120" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">4</text>
+
+  <!-- 5. Structured multi-month mentoring track (Impact 8, Effort 9) -> Big bet -->
+  <circle cx="685" cy="180" r="16" fill="#42a5f5" stroke="#1565c0" stroke-width="2"/>
+  <text x="685" y="185" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">5</text>
+
+  <!-- 6. Async AI coordinator (multilingual) (Impact 4.5, Effort 4.5) -> Fill-in -->
+  <circle cx="392.5" cy="407.5" r="16" fill="#ffb74d" stroke="#e65100" stroke-width="2"/>
+  <text x="392.5" y="412.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">6</text>
+
+  <!-- Legend -->
+  <text x="100" y="772" font-size="14" font-weight="bold" fill="#1a1a1a">Legend</text>
+
+  <circle cx="110" cy="796" r="7" fill="#66bb6a" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="125" y="800" font-size="12.5" fill="#222222">1. Field-to-role mapper</text>
+
+  <circle cx="110" cy="820" r="7" fill="#42a5f5" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="125" y="824" font-size="12.5" fill="#222222">2. Try-it micro-sprints</text>
+
+  <circle cx="110" cy="844" r="7" fill="#42a5f5" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="125" y="848" font-size="12.5" fill="#222222">3. Niche-tag mentor/peer directory</text>
+
+  <circle cx="110" cy="868" r="7" fill="#66bb6a" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="125" y="872" font-size="12.5" fill="#222222">4. Warm-tie / near-peer matching</text>
+
+  <circle cx="460" cy="796" r="7" fill="#42a5f5" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="475" y="800" font-size="12.5" fill="#222222">5. Structured multi-month mentoring track</text>
+
+  <circle cx="460" cy="820" r="7" fill="#ffb74d" stroke="#e65100" stroke-width="1.5"/>
+  <text x="475" y="824" font-size="12.5" fill="#222222">6. Async AI coordinator (multilingual)</text>
+</svg>

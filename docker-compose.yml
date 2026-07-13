@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+
+  etl:
+    build:
+      context: .
+      dockerfile: docker/etl.Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    # ETL usually runs as a cron job or a one-off task, not a daemon.
+    # For now, it will just execute main.py and exit.
+    profiles:
+      - etl

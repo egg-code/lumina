@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lumina | Career Match</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="lumina-app">
+        <!-- Sticky Nav -->
+        <div class="top-nav">
+            <div class="nav-container">
+                <div class="logo-group">
+                    <div class="logo-icon">L</div>
+                    <span class="logo-text">Lumina</span>
+                </div>
+                <div class="step-pills" id="step-nav">
+                    <div class="step-pill active" data-target="step-upload"><span>1. Upload CV</span></div>
+                    <div class="step-pill" data-target="step-matches"><span>2. Matches</span></div>
+                    <div class="step-pill" data-target="step-skills"><span>3. Skill gap</span></div>
+                    <div class="step-pill" data-target="step-sprint"><span>4. Sprint</span></div>
+                    <div class="step-pill" data-target="step-jobs"><span>5. Live jobs</span></div>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <!-- Step 1: Upload -->
+            <section id="step-upload" class="step-section active">
+                <div class="upload-hero">
+                    <h1>Let's find your next role</h1>
+                    <p>Upload or paste your CV — Lumina matches you to real roles and highlights skill gaps through a Venn diagram.</p>
+                </div>
+                
+                <div class="input-card">
+                    <div class="input-tabs">
+                        <div class="input-tab active" data-tab="upload">Upload file</div>
+                        <div class="input-tab" data-tab="paste">Paste text</div>
+                    </div>
+                    
+                    <div class="input-body">
+                        <!-- Upload Mode -->
+                        <div id="mode-upload" class="input-mode active">
+                            <label class="dropzone" id="dropzone" for="cv-file">
+                                <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.txt" style="display:none">
+                                <div class="drop-icon">⇧</div>
+                                <div class="drop-text">
+                                    <div class="drop-title">Drag &amp; drop your CV here</div>
+                                    <div class="drop-subtitle">or click to browse — PDF, DOCX, or TXT</div>
+                                </div>
+                                <div id="file-name-display" class="file-name-display" style="display:none"></div>
+                            </label>
+                        </div>
+                        
+                        <!-- Paste Mode -->
+                        <div id="mode-paste" class="input-mode" style="display:none">
+                            <textarea id="cv-text" placeholder="Paste the text of your CV here..."></textarea>
+                        </div>
+                        
+                        <div class="use-sample-row">
+                            <span id="use-sample-btn" class="use-sample-link">Use a sample CV instead</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="cta-row">
+                    <button id="btn-find-matches" class="btn-primary" disabled>Find my matches →</button>
+                </div>
+                <div id="upload-error" class="error-message"></div>
+
+                <!-- Analyzing overlay -->
+                <div id="analyzing-card" class="analyzing-card" style="display:none">
+                  <div class="orb-wrap">
+                      <div class="orb-ring"></div>
+                      <div class="orb-ring delay"></div>
+                      <div class="orb-core"></div>
+                  </div>
+                  <h2 class="analyzing-title">Reading your CV</h2>
+                  <div id="analyzing-status" class="analyzing-status">Extracting your experience…</div>
+                  <div class="bar-track"><div class="bar-fill"></div></div>
+                  <div class="analyzing-steps">
+                      <span id="analyzing-step-1">Parsing</span>&nbsp;→&nbsp;<span id="analyzing-step-2">Matching</span>&nbsp;→&nbsp;<span id="analyzing-step-3">Enriching</span>
+                  </div>
+              </div>
+            </section>
+
+            <!-- Step 2: Matches -->
+            <section id="step-matches" class="step-section" style="display:none">
+                <div class="matches-hero">
+                    <h1>Your top matches</h1>
+                    <p>Based on your CV, here's where you're most likely to land — and why.</p>
+                </div>
+                <div id="matches-container" class="matches-grid">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="custom-role-wrap" id="customRoleWrap" style="display:none">
+                  <div class="custom-role-divider">or</div>
+                  <div class="custom-role-card">
+                    <p class="custom-role-label">Have a specific role in mind?</p>
+                    <div class="custom-role-input-row">
+                      <input 
+                        type="text" 
+                        id="customRoleInput" 
+                        class="custom-role-input" 
+                        placeholder="e.g. Product Manager, UX Researcher..."
+                        autocomplete="off"
+                      />
+                      <button class="btn-primary-auto" id="customRoleBtn" disabled>Analyse →</button>
+                    </div>
+                  </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Skills -->
+            <section id="step-skills" class="step-section" style="display:none">
+                <div class="skills-head">
+                    <button class="back-link" id="backToMatchesBtn">← Back to job titles</button>
+                    <div class="eyebrow">Skill gap</div>
+                    <h1 id="skillsHeading">Where you stand</h1>
+                    <p id="skillsSubheading">See what's already strong on your CV, what overlaps with this role, and what to build next.</p>
+                    <div class="readiness-banner" id="readinessBanner" style="display:none">
+                        <span class="readiness-pill" id="readinessPill"></span>
+                        <span class="readiness-hours" id="readinessHours"></span>
+                    </div>
+                </div>
+
+                <div class="venn-card">
+                  <svg viewBox="0 0 480 250" class="venn-svg" role="img" aria-labelledby="vennTitle">
+                    <title id="vennTitle">Venn diagram comparing CV skills to role requirements</title>
+                    <text x="140" y="20" class="venn-label">Your CV skills</text>
+                    <text x="340" y="20" class="venn-label">The skills you need</text>
+                    <circle cx="180" cy="140" r="88" class="venn-circle-a" />
+                    <circle cx="300" cy="140" r="88" class="venn-circle-b" />
+                    <path class="venn-overlap" d="M 240 75.63 A 88 88 0 0 1 240 204.37 A 88 88 0 0 1 240 75.63 Z" />
+                    <text x="135" y="145" class="venn-count venn-text-light" id="vennCountA">0</text>
+                    <text x="135" y="165" class="venn-sublabel venn-text-light">only on CV</text>
+                    <text x="240" y="145" class="venn-count venn-text-light" id="vennCountOverlap">0</text>
+                    <text x="240" y="165" class="venn-sublabel venn-text-light">overlap</text>
+                    <text x="345" y="145" class="venn-count venn-text-dark" id="vennCountB">0</text>
+                    <text x="345" y="165" class="venn-sublabel venn-text-dark">to build</text>
+                  </svg>
+                </div>
+
+                <div class="skills-groups">
+                  <div class="skill-section">
+                    <div class="skill-section-head">
+                      <span class="skill-dot skill-dot-existing"></span>
+                      <h2>Your CV skills</h2>
+                      <span class="skill-count" id="existingCount">0</span>
+                    </div>
+                    <p class="skill-section-sub">Everything on your CV — the ones ringed in green already line up with this role.</p>
+                    <div class="skill-chips" id="existingChips"></div>
+                  </div>
+
+                  <div class="skill-section">
+                    <div class="skill-section-head">
+                      <span class="skill-dot skill-dot-overlap"></span>
+                      <h2>Overlapping with this role</h2>
+                      <span class="skill-count" id="overlapCount">0</span>
+                    </div>
+                    <p class="skill-section-sub">Skills this role needs that you already have.</p>
+                    <div class="skill-chips" id="overlapChips"></div>
+                  </div>
+
+                  <div class="skill-section">
+                    <div class="skill-section-head">
+                      <span class="skill-dot skill-dot-develop"></span>
+                      <h2>Skills to develop</h2>
+                      <span class="skill-count" id="developCount">0</span>
+                    </div>
+                    <p class="skill-section-sub">Not on your CV yet — worth building before you commit to this role.</p>
+                    <div class="skill-chips" id="developChips"></div>
+                  </div>
+                  
+                  <div class="skill-section experience-section" id="experienceSection" style="display:none">
+                    <div class="skill-section-head">
+                      <span class="skill-dot skill-dot-experience">⇄</span>
+                      <h2>Experience comparison</h2>
+                      <span class="skill-count" id="experienceCount">0</span>
+                    </div>
+                    <p class="skill-section-sub">How your real-world background maps to what this role does day-to-day.</p>
+                    <div id="experienceRows"></div>
+                  </div>
+                  
+                  <div class="skill-section skeleton-section" id="experienceSkeleton" style="display:none">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-row"></div>
+                    <div class="skeleton skeleton-row"></div>
+                    <div class="skeleton skeleton-row"></div>
+                  </div>
+                </div>
+
+                <div id="learningSection" style="display:none">
+                  <div class="learning-pathway-head">
+                    <div class="eyebrow">Learning pathway</div>
+                    <h2>Your personalised study plan</h2>
+                    <p>Resources ordered by what to learn first — free options prioritised.</p>
+                  </div>
+                  <div id="learningItems"></div>
+                  <button class="show-more-btn" id="showMoreLearning" style="display:none">
+                    Show all skills →
+                  </button>
+                </div>
+
+                <div id="learningSkeleton" style="display:none">
+                  <div class="skeleton skeleton-card"></div>
+                  <div class="skeleton skeleton-card"></div>
+                </div>
+                
+                <div class="cta-row">
+                  <button id="btn-build-sprint" class="btn-primary">Build my sprint →</button>
+                </div>
+            </section>
+
+            <!-- Step 4: Sprint -->
+            <section id="step-sprint" class="step-section" style="display:none">
+                <div class="sprint-header">
+                    <div>
+                        <div class="sprint-label">7-day sprint</div>
+                        <h1 id="sprint-title">Your sprint to [Role]</h1>
+                    </div>
+                    <button id="btn-view-jobs" class="btn-primary-auto">See live job links →</button>
+                </div>
+
+                <div class="sprint-progress-card">
+                    <div class="progress-labels">
+                        <span>Sprint progress</span>
+                        <span class="progress-count"><span id="sprint-done">0</span> / <span id="sprint-total">0</span> tasks</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="sprint-progress-bar" class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <div id="sprint-days-container" class="sprint-days-list">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- Step 4: Live Jobs -->
+            <section id="step-jobs" class="step-section" style="display:none">
+                <div class="jobs-header">
+                    <div class="sprint-label">Live job links</div>
+                    <h1>Roles matching your sprint</h1>
+                    <p>Curated from your top matches — updated daily.</p>
+                </div>
+
+                <div class="jobs-filters">
+                    <select id="filter-location">
+                        <option value="all">All locations</option>
+                    </select>
+                    <label class="remote-toggle">
+                        <input type="checkbox" id="filter-remote">
+                        Remote only
+                    </label>
+                </div>
+
+                <div class="jobs-count" id="jobs-count">0 openings</div>
+
+                <div id="jobs-list" class="jobs-list">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
