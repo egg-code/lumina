@@ -24,6 +24,35 @@ CACHE_TTL_SECONDS = 3600  # 1 hour
 def _cache_key(cv_text: str, target_title: str) -> str:
     return hashlib.sha256(f"{cv_text}:{target_title}".encode()).hexdigest()[:16]
 
+def _reconcile_to_core_list(
+    core_skills: list[str],
+    overlapping: list[str],
+    missing_detail: list[dict],
+) -> tuple[list[str], list[dict]]:
+    """Force the LLM's classification to cover exactly `core_skills` — the
+    same capped core-skills list the job-matches card already computed
+    (job_title_matcher._evaluate_occupation) — so both pages always report
+    the same total for a given role instead of drifting apart.
+
+    Drops anything the model hallucinated outside the list, and fills in
+    any core skill the model forgot to classify (defaulting it to missing,
+    marked "nice_to_have" so it doesn't overstate severity)."""
+    core_set = set(core_skills)
+    overlapping = [s for s in overlapping if s in core_set]
+    missing_detail = [m for m in missing_detail if m.get("name") in core_set]
+
+    classified = set(overlapping) | {m.get("name") for m in missing_detail}
+    for skill in core_skills:
+        if skill not in classified:
+            missing_detail.append({
+                "name": skill,
+                "severity": "nice_to_have",
+                "category": "domain",
+                "user_has_equivalent": False,
+                "equivalent_skill": ""
+            })
+    return overlapping, missing_detail
+
 def _build_esco_only_fallback(existing_skills: list[str], missing_skills: list[str], target_title: str) -> SkillGapResponse:
     # Just basic matching logic if LLM fails
     score = 0
@@ -67,30 +96,56 @@ async def analyze_skill_gap(
         if now - ts < CACHE_TTL_SECONDS:
             return cached_res
 
+    # If we were handed a pre-computed core-skills list (from the job-matches
+    # card via job_title_matcher._evaluate_occupation), that list is the
+    # single source of truth for "what skills matter for this role" — both
+    # pages must count against the exact same list, or their totals drift
+    # apart (this is what caused "17 of 36" vs "7 of 13"). For a custom
+    # role typed by the user, existing/missing will be empty and we fall
+    # back to letting the LLM curate its own list from scratch.
+    combined_core_skills = list(dict.fromkeys(existing_skills + missing_skills))
+    has_fixed_core_list = len(combined_core_skills) > 0
+
     # Prepare prompts
     system_a = "You are an expert career coach and skills assessor with deep knowledge of job markets. Always return valid JSON."
+
+    if has_fixed_core_list:
+        core_skills_instructions = f"""
+IMPORTANT — FIXED CORE SKILLS LIST:
+The {len(combined_core_skills)} skills below are the exact, already-filtered
+"core skills" list for this role (computed upstream, capped to the most
+essential skills). You MUST use this exact list for overlapping_skills and
+missing_skills_detail — do not add any skill that is not in it, and do not
+drop any skill from it. Your only job for those two fields is to classify
+each of these skills as either overlapping (the user has it or a close
+equivalent) or missing (the user lacks it), based on the CV below.
+
+CORE SKILLS TO CLASSIFY (must appear, collectively, in overlapping_skills +
+missing_skills_detail — nothing added, nothing omitted):
+{json.dumps(combined_core_skills)}
+"""
+    else:
+        core_skills_instructions = """
+No pre-computed core skills list was provided (custom role) — determine the
+most relevant skills for this role yourself.
+"""
+
     prompt_a = f"""
 USER CV:
 {cv_text}
 
 TARGET ROLE: {target_title}
-
-ESCO-MATCHED SKILLS (from ontology — may be empty for custom roles):
-- Already has: {json.dumps(existing_skills)}
-- Known missing: {json.dumps(missing_skills)}
-
+{core_skills_instructions}
 TASK: Perform a thorough skills and experience gap analysis.
 
 Instructions:
-1. For missing_skills_detail: Include ALL skills this role typically requires 
-   that the user doesn't clearly have. Don't limit to ESCO list — add domain 
-   knowledge, tools, soft skills that are actually needed.
+1. For missing_skills_detail: {"Classify only the fixed core skills list above — see FIXED CORE SKILLS LIST instructions." if has_fixed_core_list else "Include ALL skills this role typically requires that the user doesn't clearly have — add domain knowledge, tools, soft skills that are actually needed."}
 2. For excess_skills: List user's skills NOT typically needed for {target_title}.
-3. For experience_gaps: Select the 3-5 MOST RELEVANT experience differences 
+3. For experience_gaps: Select the 3-5 MOST RELEVANT experience differences
    between what the user has done and what this role actually requires day-to-day.
    Focus on impact, not just titles.
 4. For readiness_label: Be honest and realistic, not overly optimistic. (e.g. "Ready Now", "3-6 months", "6-12 months", "1+ year")
-5. For total_learning_hours_estimate: Sum of hours to become job-ready across 
+5. For total_learning_hours_estimate: Sum of hours to become job-ready across
    all critical missing skills.
 6. Make sure overlapping_skills contains skills the user HAS that are relevant to this role.
 
@@ -213,13 +268,26 @@ Return JSON with this exact schema:
         logger.warning(f"Course recommendation failed: {course_result}")
         
     try:
+      overlapping_skills = gap_result.get("overlapping_skills", existing_skills)
+      missing_skills_detail = gap_result.get("missing_skills_detail", [])
+      match_score = gap_result.get("match_score_percent", 0)
+
+      if has_fixed_core_list:
+          overlapping_skills, missing_skills_detail = _reconcile_to_core_list(
+              combined_core_skills, overlapping_skills, missing_skills_detail
+          )
+          # Recompute the score off the reconciled counts so it's always
+          # consistent with what's actually shown — same pattern used in
+          # job_title_matcher._evaluate_occupation.
+          match_score = int((len(overlapping_skills) / len(combined_core_skills)) * 100)
+
       response = SkillGapResponse(
           target_title=target_title,
-          match_score_percent=gap_result.get("match_score_percent", 0),
+          match_score_percent=match_score,
           readiness_label=gap_result.get("readiness_label", "Unknown"),
           total_learning_hours_estimate=gap_result.get("total_learning_hours_estimate", 0),
-          overlapping_skills=gap_result.get("overlapping_skills", existing_skills),
-          missing_skills_detail=gap_result.get("missing_skills_detail", []),
+          overlapping_skills=overlapping_skills,
+          missing_skills_detail=missing_skills_detail,
           excess_skills=gap_result.get("excess_skills", []),
           experience_gaps=gap_result.get("experience_gaps", []),
           recommendations=recommendations,

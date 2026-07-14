@@ -79,6 +79,23 @@ def _word_overlap_match(req_skills: list[str], user_skills: list[str]) -> tuple[
             missing.append(req)
     return existing, missing
 
+# Max total "core skills" (existing + missing combined) shown for any one
+# occupation. Keeps the job-matches card from drowning a role in ESCO's
+# full skill ontology — and, just as importantly, this is the same cap the
+# skill-gap page enforces on the exact same list, so both pages report the
+# same total for a given role.
+MAX_CORE_SKILLS = 15
+
+def _cap_core_skills(existing: list[str], missing: list[str], max_total: int = MAX_CORE_SKILLS) -> tuple[list[str], list[str]]:
+    """Cap existing+missing to at most max_total skills, keeping the user's
+    matched (existing) skills first since those are the proof of fit, and
+    trimming the "to build" list to fit the remaining budget."""
+    if len(existing) + len(missing) <= max_total:
+        return existing, missing
+    existing = existing[:max_total]
+    remaining = max(max_total - len(existing), 0)
+    return existing, missing[:remaining]
+
 # ---------------------------------------------------------------------------
 # Per-occupation evaluation — mirrors skill_gap_analyzer.analyze_skill_gap():
 # one focused LLM call per item (small prompt/response, low truncation risk),
@@ -87,7 +104,9 @@ def _word_overlap_match(req_skills: list[str], user_skills: list[str]) -> tuple[
 
 async def _evaluate_occupation(title: str, req_skills: list[str], user_skills: list[str]) -> PathwayMatch:
     fallback_existing, fallback_missing = _word_overlap_match(req_skills, user_skills)
-    fallback_score = int((len(fallback_existing) / len(req_skills)) * 100) if req_skills else 0
+    fallback_existing, fallback_missing = _cap_core_skills(fallback_existing, fallback_missing)
+    fallback_total = len(fallback_existing) + len(fallback_missing)
+    fallback_score = int((len(fallback_existing) / fallback_total) * 100) if fallback_total else 0
 
     if not OPENROUTER_API_KEY:
         logger.warning("OPENROUTER_API_KEY not set. Using word-overlap fallback for '%s'.", title)
@@ -100,21 +119,31 @@ async def _evaluate_occupation(title: str, req_skills: list[str], user_skills: l
         )
 
     prompt = f"""
-    You are an expert career and skills evaluator.
+    You are an expert career coach and skills assessor with deep knowledge of job markets.
 
-    USER SKILLS:
+    USER SKILLS (from their CV):
     {json.dumps(user_skills)}
 
     TARGET OCCUPATION: {title}
-    REQUIRED SKILLS FOR THIS OCCUPATION:
+
+    ESCO ESSENTIAL SKILLS (from the ESCO ontology — use this as background
+    context, not as a checklist you must fully restate):
     {json.dumps(req_skills)}
 
-    Task: Evaluate how well the USER SKILLS match the required skills for this occupation.
+    TASK: Identify the CORE SKILLS for "{title}" — the {MAX_CORE_SKILLS} or
+    fewer most essential skills someone actually needs to be hired for this
+    role today, the way an experienced recruiter would describe the role's
+    real requirements. Do not exceed {MAX_CORE_SKILLS} skills total. Then
+    compare that core skill set against the user's skills.
+
     Output:
-    - existing_skills: required skills (copied exactly as given) that the user already has, or
-      has a very close semantic equivalent to. Be generous with reasonable synonyms and phrasing
-      differences (e.g. "Project Management" counts as a match for "manage project resources").
-    - missing_skills: required skills (copied exactly as given) that the user clearly lacks.
+    - existing_skills: core skills the user already has, or has a very close
+      semantic equivalent to. Be generous with reasonable synonyms and
+      phrasing differences (e.g. "Project Management" counts as a match for
+      "manage project resources").
+    - missing_skills: core skills the user clearly lacks.
+    - existing_skills and missing_skills combined must total no more than
+      {MAX_CORE_SKILLS} skills.
 
     Return a JSON object with exactly two keys: "existing_skills" and "missing_skills".
     """
@@ -124,6 +153,7 @@ async def _evaluate_occupation(title: str, req_skills: list[str], user_skills: l
         parsed_json = await call_llm(prompt, system_prompt, timeout=15.0, max_tokens=1200)
         existing = parsed_json.get("existing_skills", [])
         missing = parsed_json.get("missing_skills", [])
+        existing, missing = _cap_core_skills(existing, missing)
         total = len(existing) + len(missing)
         score = int((len(existing) / total) * 100) if total else fallback_score
         return PathwayMatch(

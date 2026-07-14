@@ -46,9 +46,15 @@ async def search_occupations(skill_keywords: List[str], limit_per_keyword: int =
                     
     return results
 
-async def get_occupation_skills(uri: str) -> Set[str]:
+async def get_occupation_skills(uri: str, include_optional: bool = False) -> Set[str]:
     """
-    Fetch the essential and optional skills for a given occupation URI.
+    Fetch the required skills for a given occupation URI.
+
+    Defaults to ESSENTIAL skills only. ESCO's "optional" skill lists are
+    often long and include loosely-related or rarely-actually-required
+    items — including them by default is what previously inflated a role's
+    required-skill count to 30+ entries. Pass include_optional=True only if
+    you explicitly want the full ontology list.
     """
     async with httpx.AsyncClient() as client:
         try:
@@ -59,24 +65,25 @@ async def get_occupation_skills(uri: str) -> Set[str]:
             )
             response.raise_for_status()
             data = response.json()
-            
+
             skills = set()
-            
+
             # ESCO API returns skills usually in _links.hasEssentialSkill or _links.hasOptionalSkill
             links = data.get("_links", {})
-            
+
             essential_skills = links.get("hasEssentialSkill", [])
             for skill in essential_skills:
                 title = skill.get("title")
                 if title:
                     skills.add(title.lower())
-                    
-            optional_skills = links.get("hasOptionalSkill", [])
-            for skill in optional_skills:
-                title = skill.get("title")
-                if title:
-                    skills.add(title.lower())
-                    
+
+            if include_optional:
+                optional_skills = links.get("hasOptionalSkill", [])
+                for skill in optional_skills:
+                    title = skill.get("title")
+                    if title:
+                        skills.add(title.lower())
+
             return skills
         except Exception as e:
             logger.error(f"ESCO API resource error for '{uri}': {e}")
