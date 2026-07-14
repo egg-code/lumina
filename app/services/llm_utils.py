@@ -36,7 +36,7 @@ MODELS = [
     #  "openai/gpt-4o-mini",           # cheap paid fallback, not free — remove if you don't want any spend
 ]
 
-async def _openrouter_post(model: str, system: str, prompt: str, timeout: float = 60.0) -> str:
+async def _openrouter_post(model: str, system: str, prompt: str, timeout: float = 60.0, max_tokens: int = 2000) -> str:
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -51,33 +51,30 @@ async def _openrouter_post(model: str, system: str, prompt: str, timeout: float 
             {"role": "user", "content": prompt}
         ],
         "response_format": {"type": "json_object"},
-        "max_tokens": 2000
+        "max_tokens": max_tokens
     }
     async with httpx.AsyncClient(timeout=httpx.Timeout(connect=5.0, read=timeout, write=5.0, pool=5.0)) as client:
-        response = await client.post(url, headers=headers, json=payload, timeout=timeout)
-    
-    async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=payload, timeout=timeout)
         response.raise_for_status()
         data = response.json()
         content = data["choices"][0]["message"]["content"]
-        
+
         content = content.strip()
         if content.startswith("```json"):
             content = content[7:-3].strip()
         elif content.startswith("```"):
             content = content[3:-3].strip()
-            
+
         return content
 
-async def call_llm(prompt: str, system: str, timeout: float = 60.0) -> dict:
+async def call_llm(prompt: str, system: str, timeout: float = 60.0, max_tokens: int = 2000) -> dict:
     if not OPENROUTER_API_KEY:
         raise ValueError("OPENROUTER_API_KEY not set")
-        
+
     for model in MODELS:
         try:
             logger.info(f"Calling OpenRouter with model {model}...")
-            response_text = await _openrouter_post(model, system, prompt, timeout=timeout)
+            response_text = await _openrouter_post(model, system, prompt, timeout=timeout, max_tokens=max_tokens)
             return json.loads(response_text)
         except Exception as e:
             logger.warning(f"Model {model} failed: {e}. Trying next.")
