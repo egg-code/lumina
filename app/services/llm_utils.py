@@ -24,7 +24,8 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 # ]
 
 MODELS = [
-    "openai/gpt-4o-mini",            # put the reliable paid one first
+    "openrouter/free",  # auto-router, picks an available free model
+    # "openai/gpt-4o-mini",            # put the reliable paid one first
     "deepseek/deepseek-v3:free"     # one free fallback is enough
 
     #  "openrouter/free",              # auto-router, picks an available free model
@@ -49,8 +50,11 @@ async def _openrouter_post(model: str, system: str, prompt: str, timeout: float 
             {"role": "system", "content": system},
             {"role": "user", "content": prompt}
         ],
-        "response_format": {"type": "json_object"}
+        "response_format": {"type": "json_object"},
+        "max_tokens": 2000
     }
+    async with httpx.AsyncClient(timeout=httpx.Timeout(connect=5.0, read=timeout, write=5.0, pool=5.0)) as client:
+        response = await client.post(url, headers=headers, json=payload, timeout=timeout)
     
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=payload, timeout=timeout)

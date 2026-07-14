@@ -75,7 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showMoreLearning: document.getElementById('showMoreLearning'),
         
         backToMatchesBtn: document.getElementById('backToMatchesBtn'),
-        btnBuildSprint: document.getElementById('btn-build-sprint'),
+        //btnBuildSprint: document.getElementById('btn-build-sprint'),
+        btnEditCv: document.getElementById('btn-edit-cv'),
+        btnFindJobs: document.getElementById('btn-find-jobs'),
 
         // Sprint Step
         sprintTitle: document.getElementById('sprint-title'),
@@ -241,7 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         els.experienceSkeleton.style.display = 'block';
         els.learningSkeleton.style.display = 'block';
-        els.btnBuildSprint.disabled = true;
+        //els.btnBuildSprint.disabled = true;
+        els.btnFindJobs.disabled = true;
         
         try {
             const res = await fetch('/api/skill-gap', {
@@ -271,7 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.currentSkillGapData) return;
         
         const data = state.currentSkillGapData;
-        els.btnBuildSprint.disabled = false;
+        //els.btnBuildSprint.disabled = false;
+        els.btnFindJobs.disabled = false;
         
         els.skillsHeading.textContent = `Where you stand for ${data.target_title}`;
         els.skillsSubheading.textContent = `See what's already strong on your CV, what overlaps with ${data.target_title}, and what to build next.`;
@@ -313,21 +317,28 @@ document.addEventListener('DOMContentLoaded', () => {
         els.experienceSkeleton.style.display = 'none';
         if (data.experience_gaps && data.experience_gaps.length > 0) {
             els.experienceCount.textContent = data.experience_gaps.length;
-            els.experienceRows.innerHTML = data.experience_gaps.map(g => `
-                <div class="exp-row">
-                    <div class="exp-col">
-                        <div class="exp-label">Role needs</div>
-                        <div class="exp-val">${g.role_needs}</div>
-                    </div>
-                    <div class="exp-col">
-                        <div class="exp-label">You have</div>
-                        <div class="exp-val">${g.user_has}</div>
-                    </div>
-                    <div class="exp-bridge">
-                        <span class="bridge-icon">💡</span> ${g.bridge_note}
-                    </div>
+            els.experienceRows.innerHTML = `
+                <div class="exp-table-wrap">
+                    <table class="exp-table">
+                        <thead>
+                            <tr>
+                                <th>Role needs</th>
+                                <th>You have</th>
+                                <th>Bridge note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.experience_gaps.map(g => `
+                                <tr>
+                                    <td>${g.role_needs}</td>
+                                    <td>${g.user_has}</td>
+                                    <td><span class="bridge-icon">💡</span> ${g.bridge_note}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
-            `).join('');
+            `;
             els.experienceSection.style.display = 'block';
         } else {
             els.experienceSection.style.display = 'none';
@@ -559,9 +570,16 @@ document.addEventListener('DOMContentLoaded', () => {
     els.backToMatchesBtn.addEventListener('click', () => {
         goStep('matches');
     });
-    els.btnBuildSprint.addEventListener('click', () => {
-        state.maxStep = Math.max(state.maxStep, 4);
-        goStep('sprint');
+    // els.btnBuildSprint.addEventListener('click', () => {
+    //     state.maxStep = Math.max(state.maxStep, 4);
+    //     goStep('sprint');
+    // });
+    els.btnEditCv.addEventListener('click', () => {
+        goStep('upload');
+    });
+    els.btnFindJobs.addEventListener('click', () => {
+        //state.maxStep = Math.max(state.maxStep, 4);
+        goStep('matches');
     });
 
     // File Drag & Drop
@@ -619,6 +637,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (analyzingTimer) clearInterval(analyzingTimer);
         analyzingTimer = null;
         els.analyzingCard.style.display = 'none';
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs = 45000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+            clearTimeout(id);
+        }
     }
 
 

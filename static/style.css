@@ -316,6 +316,39 @@ button {
     cursor: not-allowed;
 }
 
+.btn-secondary {
+    background: #fff;
+    color: var(--brand-teal);
+    font-weight: 700;
+    font-size: 14.5px;
+    border: 1.5px solid var(--brand-teal);
+    border-radius: 11px;
+    padding: 13px 28px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(15,118,110,0.06);
+}
+
+.skillgap-conclusion {
+    max-width: 620px;
+    margin: 32px auto 0;
+    text-align: center;
+}
+
+.skillgap-conclusion-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.cta-row-split {
+    gap: 14px;
+}
+
 /* Analyzing overlay */
 .analyzing-card {
     max-width: 420px;
@@ -976,6 +1009,34 @@ button {
 .skeleton-row { height: 14px; width: 100%; margin-bottom: 12px; }
 .skeleton-row:last-child { width: 70%; }
 .skeleton-card { height: 120px; width: 100%; margin-bottom: 16px; border-radius: 12px; }
+
+/* Experience Section — table layout */
+.exp-table-wrap { overflow-x: auto; }
+.exp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.exp-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 14px 10px;
+    border-bottom: 2px solid var(--card-border);
+    white-space: nowrap;
+}
+.exp-table tbody td {
+    padding: 14px;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-primary);
+    line-height: 1.4;
+    vertical-align: top;
+}
+.exp-table tbody tr:last-child td { border-bottom: none; }
+.exp-table tbody tr:hover { background: var(--bg-color); }
+.exp-table td:last-child {
+    color: #4338CA;
+    font-size: 13px;
+}
+.exp-table .bridge-icon { margin-right: 4px; }
 
 @keyframes loading {
     0% { background-position: 200% 0; }
