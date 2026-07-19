@@ -12,13 +12,13 @@
         <div class="top-nav">
             <div class="nav-container">
                 <div class="logo-group">
-                    <div class="logo-icon">L</div>
                     <span class="logo-text">Lumina</span>
                 </div>
                 <div class="step-pills" id="step-nav">
                     <div class="step-pill active" data-target="step-upload"><span>1. Upload CV</span></div>
                     <div class="step-pill" data-target="step-matches"><span>2. Matches</span></div>
                     <div class="step-pill" data-target="step-skills"><span>3. Skill gap</span></div>
+                    <div class="step-pill" data-target="step-feedback"><span>4. Feedback</span></div>
                     <!-- <div class="step-pill" data-target="step-sprint"><span>4. Sprint</span></div>
                     <div class="step-pill" data-target="step-jobs"><span>5. Live jobs</span></div> -->
                 </div>
@@ -30,60 +30,80 @@
             <section id="step-upload" class="step-section active">
                 <div class="upload-hero">
                     <h1>Let's find your next role</h1>
-                    <p>Upload or paste your CV — Lumina matches you to real roles and highlights skill gaps through a Venn diagram.</p>
+                    <p>Upload or paste your CV — Lumina matches you to real roles and shows exactly what to build next.</p>
                 </div>
-                
-                <div class="input-card">
-                    <div class="input-tabs">
-                        <div class="input-tab active" data-tab="upload">Upload file</div>
-                        <div class="input-tab" data-tab="paste">Paste text</div>
+
+                <div class="upload-layout">
+                  <div class="upload-layout-left">
+                    <div class="input-card">
+                        <div class="input-tabs">
+                            <div class="input-tab active" data-tab="upload">Upload file</div>
+                            <div class="input-tab" data-tab="paste">Paste text</div>
+                        </div>
+                        
+                        <div class="input-body">
+                            <!-- Upload Mode -->
+                            <div id="mode-upload" class="input-mode active">
+                                <label class="dropzone" id="dropzone" for="cv-file">
+                                    <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.txt" style="display:none">
+                                    <div class="drop-icon">⇧</div>
+                                    <div class="drop-text">
+                                        <div class="drop-title">Drag &amp; drop your CV here</div>
+                                        <div class="drop-subtitle">or click to browse — PDF, DOCX, or TXT</div>
+                                    </div>
+                                    <div id="file-name-display" class="file-name-display" style="display:none"></div>
+                                </label>
+                            </div>
+                            
+                            <!-- Paste Mode -->
+                            <div id="mode-paste" class="input-mode" style="display:none">
+                                <textarea id="cv-text" placeholder="Paste the text of your CV here..."></textarea>
+                            </div>
+                            
+                            <div class="use-sample-row">
+                                <span id="use-sample-btn" class="use-sample-link">Use a sample CV instead</span>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="input-body">
-                        <!-- Upload Mode -->
-                        <div id="mode-upload" class="input-mode active">
-                            <label class="dropzone" id="dropzone" for="cv-file">
-                                <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.txt" style="display:none">
-                                <div class="drop-icon">⇧</div>
-                                <div class="drop-text">
-                                    <div class="drop-title">Drag &amp; drop your CV here</div>
-                                    <div class="drop-subtitle">or click to browse — PDF, DOCX, or TXT</div>
-                                </div>
-                                <div id="file-name-display" class="file-name-display" style="display:none"></div>
-                            </label>
-                        </div>
-                        
-                        <!-- Paste Mode -->
-                        <div id="mode-paste" class="input-mode" style="display:none">
-                            <textarea id="cv-text" placeholder="Paste the text of your CV here..."></textarea>
-                        </div>
-                        
-                        <div class="use-sample-row">
-                            <span id="use-sample-btn" class="use-sample-link">Use a sample CV instead</span>
-                        </div>
+                    <div class="cta-row">
+                        <button id="btn-find-matches" class="btn-primary" disabled>Find my matches →</button>
                     </div>
-                </div>
-                
-                <div class="cta-row">
-                    <button id="btn-find-matches" class="btn-primary" disabled>Find my matches →</button>
-                </div>
-                <div id="upload-error" class="error-message"></div>
+                    <div id="upload-error" class="error-message"></div>
 
-                <!-- Analyzing overlay -->
-                <div id="analyzing-card" class="analyzing-card" style="display:none">
-                  <div class="orb-wrap">
-                      <div class="orb-ring"></div>
-                      <div class="orb-ring delay"></div>
-                      <div class="orb-core"></div>
+                    <!-- Analyzing overlay -->
+                    <div id="analyzing-card" class="analyzing-card" style="display:none">
+                      <div class="orb-wrap">
+                          <div class="orb-ring"></div>
+                          <div class="orb-ring delay"></div>
+                          <div class="orb-core"></div>
+                      </div>
+                      <h2 class="analyzing-title">Reading your CV</h2>
+                      <div id="analyzing-status" class="analyzing-status">Extracting your experience…</div>
+                      <div class="bar-track"><div class="bar-fill"></div></div>
+                      <div class="analyzing-steps">
+                          <span id="analyzing-step-1">Parsing</span>&nbsp;→&nbsp;<span id="analyzing-step-2">Matching</span>&nbsp;→&nbsp;<span id="analyzing-step-3">Enriching</span>
+                      </div>
                   </div>
-                  <h2 class="analyzing-title">Reading your CV</h2>
-                  <div id="analyzing-status" class="analyzing-status">Extracting your experience…</div>
-                  <div class="bar-track"><div class="bar-fill"></div></div>
-                  <div class="analyzing-steps">
-                      <span id="analyzing-step-1">Parsing</span>&nbsp;→&nbsp;<span id="analyzing-step-2">Matching</span>&nbsp;→&nbsp;<span id="analyzing-step-3">Enriching</span>
                   </div>
-              </div>
+
+                  <div class="upload-layout-right" id="cvPreviewPanel" style="display:none">
+                    <div class="cv-preview-head">
+                      <span class="cv-preview-lbl">CV preview</span>
+                      <span class="cv-preview-clear" id="cvPreviewClear">Clear</span>
+                    </div>
+                    <div class="cv-preview-body" id="cvPreviewBody">
+                      <div class="cv-preview-loading" id="cvPreviewLoading" style="display:none">
+                        <div class="cv-preview-spinner"></div>
+                        <span>Reading your file…</span>
+                      </div>
+                      <pre class="cv-preview-text" id="cvPreviewText"></pre>
+                      <div class="cv-preview-empty" id="cvPreviewEmpty">Nothing parsed yet.</div>
+                    </div>
+                  </div>
+                </div>
             </section>
+
 
             <!-- Step 2: Matches -->
             <section id="step-matches" class="step-section" style="display:none">
@@ -125,21 +145,32 @@
                     </div>
                 </div>
 
-                <div class="venn-card">
-                  <svg viewBox="0 0 480 250" class="venn-svg" role="img" aria-labelledby="vennTitle">
-                    <title id="vennTitle">Venn diagram comparing CV skills to role requirements</title>
-                    <text x="140" y="20" class="venn-label">Your CV skills</text>
-                    <text x="340" y="20" class="venn-label">The skills you need</text>
-                    <circle cx="180" cy="140" r="88" class="venn-circle-a" />
-                    <circle cx="300" cy="140" r="88" class="venn-circle-b" />
-                    <path class="venn-overlap" d="M 240 75.63 A 88 88 0 0 1 240 204.37 A 88 88 0 0 1 240 75.63 Z" />
-                    <text x="135" y="145" class="venn-count venn-text-light" id="vennCountA">0</text>
-                    <text x="135" y="165" class="venn-sublabel venn-text-light">only on CV</text>
-                    <text x="240" y="145" class="venn-count venn-text-light" id="vennCountOverlap">0</text>
-                    <text x="240" y="165" class="venn-sublabel venn-text-light">overlap</text>
-                    <text x="345" y="145" class="venn-count venn-text-dark" id="vennCountB">0</text>
-                    <text x="345" y="165" class="venn-sublabel venn-text-dark">to build</text>
-                  </svg>
+                <div class="bar-panel" id="barPanel">
+                  <div class="bar-panel-lbl">CV skills vs. role requirements</div>
+                  <div class="seg-bar">
+                    <div class="seg seg-cv" id="segCv" style="width:0%"></div>
+                    <div class="seg seg-overlap" id="segOverlap" style="width:0%"></div>
+                    <div class="seg seg-gap" id="segGap" style="width:0%"></div>
+                  </div>
+                  <div class="seg-legend">
+                    <span class="seg-legend-cv" id="legCv">0 only on CV</span>
+                    <span class="seg-legend-overlap" id="legOverlap">0 overlap with role</span>
+                    <span class="seg-legend-gap" id="legGap">0 to build</span>
+                  </div>
+                </div>
+
+                <div class="gap-loader" id="gapLoader" style="display:none">
+                  <div class="gap-loader-scene">
+                    <div class="gap-loader-ring"></div>
+                    <div class="gap-loader-orbit">
+                      <div class="gap-loader-dot dot-a"></div>
+                      <div class="gap-loader-dot dot-b"></div>
+                      <div class="gap-loader-dot dot-c"></div>
+                    </div>
+                    <div class="gap-loader-glass">🔎</div>
+                  </div>
+                  <div class="gap-loader-text" id="gapLoaderText">Sniffing out your overlaps…</div>
+                  <div class="gap-loader-hint">This usually takes few seconds.</div>
                 </div>
 
                 <div class="skills-groups">
@@ -215,7 +246,66 @@
                   <p class="skillgap-conclusion-text">Your next role starts with knowing the gap. See exactly what's missing between your CV and the job you want — fix it, then check again to track your progress.</p>
                   <div class="cta-row cta-row-split">
                     <button id="btn-edit-cv" class="btn-secondary">← Edit &amp; re-upload CV</button>
-                    <button id="btn-find-jobs" class="btn-primary">Find a matched job →</button>
+                    <button id="btn-find-jobs" class="btn-primary">Find a matched job</button>
+                    <button id="btn-go-feedback" class="btn-secondary">Share feedback →</button>
+                  </div>
+                </div>
+            </section>
+
+            <!-- Step 4: Feedback -->
+            <section id="step-feedback" class="step-section" style="display:none">
+                <div id="feedback-form-wrap">
+                  <span class="back-link" id="backToSkillsBtn">← Back to skill gap</span>
+                  <div class="eyebrow">Feedback</div>
+                  <h1 class="feedback-heading">Tell us how it went</h1>
+                  <p class="feedback-sub">Two minutes of your time helps us make the next version sharper.</p>
+
+                  <div class="feedback-card">
+                    <div class="feedback-field">
+                      <label for="fb-name">Name</label>
+                      <input type="text" id="fb-name" placeholder="Your name" autocomplete="name">
+                    </div>
+
+                    <div class="feedback-field">
+                      <label for="fb-email">Email</label>
+                      <input type="email" id="fb-email" placeholder="you@example.com" autocomplete="email">
+                    </div>
+
+                    <div class="feedback-field">
+                      <label>Rating</label>
+                      <div class="star-rating" id="starRating">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                      </div>
+                    </div>
+
+                    <div class="feedback-field">
+                      <label for="fb-feedback">Feedback</label>
+                      <textarea id="fb-feedback" placeholder="What worked well? What was confusing or broken?"></textarea>
+                    </div>
+
+                    <div class="feedback-field">
+                      <label for="fb-remarks">Remarks <span class="feedback-optional">(optional)</span></label>
+                      <textarea id="fb-remarks" placeholder="Anything else you'd like to add..."></textarea>
+                    </div>
+
+                    <div id="feedback-error" class="error-message"></div>
+
+                    <div class="cta-row">
+                      <button id="btn-submit-feedback" class="btn-primary">Submit feedback →</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="feedback-success" style="display:none">
+                  <div class="feedback-success-mark">✓</div>
+                  <h1 class="feedback-heading">Thank you</h1>
+                  <p class="feedback-sub">Your feedback has been noted — it genuinely shapes what we build next.</p>
+                  <div class="cta-row">
+                    <button id="btn-feedback-done" class="btn-secondary">← Back to matches</button>
                   </div>
                 </div>
             </section>

@@ -10,7 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedMatchIndex: 0,
         dayChecks: {}, // "d1t1": true
         filters: { location: 'all', remoteOnly: false },
-        currentSkillGapData: null
+        currentSkillGapData: null,
+        gapLoaderTimer: null,
+        feedbackRating: 0
     };
 
     // --- DOM Elements ---
@@ -31,6 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
         useSampleBtn: document.getElementById('use-sample-btn'),
         btnFindMatches: document.getElementById('btn-find-matches'),
         uploadError: document.getElementById('upload-error'),
+
+        cvPreviewPanel: document.getElementById('cvPreviewPanel'),
+        cvPreviewLoading: document.getElementById('cvPreviewLoading'),
+        cvPreviewText: document.getElementById('cvPreviewText'),
+        cvPreviewEmpty: document.getElementById('cvPreviewEmpty'),
+        cvPreviewClear: document.getElementById('cvPreviewClear'),
 
         analyzingCard: document.getElementById('analyzing-card'),
         analyzingStatus: document.getElementById('analyzing-status'),
@@ -53,9 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
         readinessPill: document.getElementById('readinessPill'),
         readinessHours: document.getElementById('readinessHours'),
         
-        vennCountA: document.getElementById('vennCountA'),
-        vennCountOverlap: document.getElementById('vennCountOverlap'),
-        vennCountB: document.getElementById('vennCountB'),
+        segCv: document.getElementById('segCv'),
+        segOverlap: document.getElementById('segOverlap'),
+        segGap: document.getElementById('segGap'),
+        legCv: document.getElementById('legCv'),
+        legOverlap: document.getElementById('legOverlap'),
+        legGap: document.getElementById('legGap'),
+
+        gapLoader: document.getElementById('gapLoader'),
+        gapLoaderText: document.getElementById('gapLoaderText'),
         
         existingCount: document.getElementById('existingCount'),
         overlapCount: document.getElementById('overlapCount'),
@@ -78,6 +92,21 @@ document.addEventListener('DOMContentLoaded', () => {
         //btnBuildSprint: document.getElementById('btn-build-sprint'),
         btnEditCv: document.getElementById('btn-edit-cv'),
         btnFindJobs: document.getElementById('btn-find-jobs'),
+        btnGoFeedback: document.getElementById('btn-go-feedback'),
+
+        // Feedback Step
+        feedbackFormWrap: document.getElementById('feedback-form-wrap'),
+        feedbackSuccess: document.getElementById('feedback-success'),
+        backToSkillsBtn: document.getElementById('backToSkillsBtn'),
+        fbName: document.getElementById('fb-name'),
+        fbEmail: document.getElementById('fb-email'),
+        fbFeedback: document.getElementById('fb-feedback'),
+        fbRemarks: document.getElementById('fb-remarks'),
+        starRating: document.getElementById('starRating'),
+        stars: document.querySelectorAll('#starRating .star'),
+        feedbackError: document.getElementById('feedback-error'),
+        btnSubmitFeedback: document.getElementById('btn-submit-feedback'),
+        btnFeedbackDone: document.getElementById('btn-feedback-done'),
 
         // Sprint Step
         sprintTitle: document.getElementById('sprint-title'),
@@ -124,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Render Functions ---
 
     function renderNav() {
-        const stepOrder = ['upload', 'matches', 'skills', 'sprint', 'jobs'];
+        const stepOrder = ['upload', 'matches', 'skills', 'feedback', 'sprint', 'jobs'];
         const currentIdx = stepOrder.indexOf(state.step) + 1;
 
         els.stepPills.forEach((pill, idx) => {
@@ -219,16 +248,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const GAP_LOADER_MESSAGES = [
+        "Sniffing out your overlaps…",
+        "Counting up your superpowers…",
+        "Peeking at what the role really needs…",
+        "Drawing your little circles…",
+        "Almost there, hang tight…"
+    ];
+
+    function startGapLoader() {
+        if (!els.gapLoader) return;
+        els.gapLoader.style.display = 'flex';
+        let i = 0;
+        els.gapLoaderText.textContent = GAP_LOADER_MESSAGES[0];
+        clearInterval(state.gapLoaderTimer);
+        state.gapLoaderTimer = setInterval(() => {
+            i = (i + 1) % GAP_LOADER_MESSAGES.length;
+            els.gapLoaderText.style.opacity = 0;
+            setTimeout(() => {
+                els.gapLoaderText.textContent = GAP_LOADER_MESSAGES[i];
+                els.gapLoaderText.style.opacity = 1;
+            }, 250);
+        }, 2200);
+    }
+
+    function stopGapLoader() {
+        if (!els.gapLoader) return;
+        clearInterval(state.gapLoaderTimer);
+        els.gapLoader.style.display = 'none';
+    }
+
     async function fetchSkillGap(title, existingSkills = [], missingSkills = []) {
         state.step = 'skills';
         renderNav();
         
         // Show skeletons
         els.skillsHeading.textContent = `Analyzing gap for ${title}...`;
-        els.skillsSubheading.textContent = 'Our AI is mapping your CV and experience against this role. This takes ~15 seconds.';
-        els.vennCountA.textContent = '...';
-        els.vennCountOverlap.textContent = '...';
-        els.vennCountB.textContent = '...';
+        els.skillsSubheading.textContent = 'Our AI is mapping your CV and experience against this role. This takes few seconds.';
+        els.segCv.style.width = '0%';
+        els.segOverlap.style.width = '0%';
+        els.segGap.style.width = '0%';
+        els.legCv.textContent = '… only on CV';
+        els.legOverlap.textContent = '… overlap with role';
+        els.legGap.textContent = '… to build';
         
         els.existingChips.innerHTML = '';
         els.overlapChips.innerHTML = '';
@@ -245,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         els.learningSkeleton.style.display = 'block';
         //els.btnBuildSprint.disabled = true;
         els.btnFindJobs.disabled = true;
+        startGapLoader();
         
         try {
             const res = await fetch('/api/skill-gap', {
@@ -267,6 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
             els.skillsSubheading.textContent = 'There was a problem analyzing this role. Please try again.';
             els.experienceSkeleton.style.display = 'none';
             els.learningSkeleton.style.display = 'none';
+        } finally {
+            stopGapLoader();
         }
     }
 
@@ -288,11 +353,18 @@ document.addEventListener('DOMContentLoaded', () => {
             els.readinessBanner.style.display = 'none';
         }
         
-        // Venn
+        // Segmented bar
         const cvOnlySkills = data.excess_skills || [];
-        els.vennCountA.textContent = cvOnlySkills.length;
-        els.vennCountOverlap.textContent = data.overlapping_skills.length;
-        els.vennCountB.textContent = data.missing_skills_detail.length;
+        const cvOnlyCount = cvOnlySkills.length;
+        const overlapCountNum = data.overlapping_skills.length;
+        const gapCountNum = data.missing_skills_detail.length;
+        const barTotal = Math.max(cvOnlyCount + overlapCountNum + gapCountNum, 1);
+        els.segCv.style.width = `${(cvOnlyCount / barTotal) * 100}%`;
+        els.segOverlap.style.width = `${(overlapCountNum / barTotal) * 100}%`;
+        els.segGap.style.width = `${(gapCountNum / barTotal) * 100}%`;
+        els.legCv.textContent = `${cvOnlyCount} only on CV`;
+        els.legOverlap.textContent = `${overlapCountNum} overlap with role`;
+        els.legGap.textContent = `${gapCountNum} to build`;
         
         // Counts
         els.existingCount.textContent = cvOnlySkills.length + data.overlapping_skills.length;
@@ -525,6 +597,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             state.inputMode = tab.dataset.tab;
             renderUpload();
+            if (state.inputMode === 'paste') {
+                els.cvPreviewPanel.style.display = 'none';
+            } else if (state.cvFile && state.cvText) {
+                showCvPreviewText(state.cvText);
+            }
         });
     });
 
@@ -537,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.inputMode = 'paste';
         state.cvText = SAMPLE_CV;
         els.cvTextarea.value = SAMPLE_CV;
+        els.cvPreviewPanel.style.display = 'none';
         renderUpload();
     });
 
@@ -582,6 +660,132 @@ document.addEventListener('DOMContentLoaded', () => {
         goStep('matches');
     });
 
+    // --- Feedback Step ---
+    els.btnGoFeedback.addEventListener('click', () => {
+        state.maxStep = Math.max(state.maxStep, 4);
+        goStep('feedback');
+    });
+
+    els.backToSkillsBtn.addEventListener('click', () => {
+        goStep('skills');
+    });
+
+    els.stars.forEach(star => {
+        star.addEventListener('click', () => {
+            state.feedbackRating = parseInt(star.dataset.value);
+            renderStars();
+        });
+        star.addEventListener('mouseenter', () => {
+            previewStars(parseInt(star.dataset.value));
+        });
+    });
+    els.starRating.addEventListener('mouseleave', renderStars);
+
+    function previewStars(value) {
+        els.stars.forEach(s => {
+            s.classList.toggle('filled', parseInt(s.dataset.value) <= value);
+        });
+    }
+
+    function renderStars() {
+        previewStars(state.feedbackRating);
+    }
+
+    function resetFeedbackForm() {
+        els.fbName.value = '';
+        els.fbEmail.value = '';
+        els.fbFeedback.value = '';
+        els.fbRemarks.value = '';
+        state.feedbackRating = 0;
+        renderStars();
+        els.feedbackError.textContent = '';
+        els.feedbackFormWrap.style.display = 'block';
+        els.feedbackSuccess.style.display = 'none';
+    }
+
+    els.btnSubmitFeedback.addEventListener('click', () => {
+        const name = els.fbName.value.trim();
+        const email = els.fbEmail.value.trim();
+        const feedback = els.fbFeedback.value.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!name || !email || !feedback || state.feedbackRating === 0) {
+            els.feedbackError.textContent = 'Please fill in your name, email, a rating, and your feedback.';
+            return;
+        }
+        if (!emailPattern.test(email)) {
+            els.feedbackError.textContent = 'Please enter a valid email address.';
+            return;
+        }
+        els.feedbackError.textContent = '';
+
+        // NOTE: UI-only for now — no backend endpoint yet.
+        // Once a /api/feedback endpoint exists, POST the payload here:
+        const payload = {
+            name,
+            email,
+            rating: state.feedbackRating,
+            feedback,
+            remarks: els.fbRemarks.value.trim()
+        };
+        console.log('Feedback submitted (UI-only, not yet persisted):', payload);
+
+        els.feedbackFormWrap.style.display = 'none';
+        els.feedbackSuccess.style.display = 'block';
+    });
+
+    els.btnFeedbackDone.addEventListener('click', () => {
+        resetFeedbackForm();
+        goStep('matches');
+    });
+
+    // --- CV Preview Panel ---
+    function showCvPreviewLoading() {
+        els.cvPreviewPanel.style.display = 'flex';
+        els.cvPreviewLoading.style.display = 'flex';
+        els.cvPreviewText.style.display = 'none';
+        els.cvPreviewEmpty.style.display = 'none';
+    }
+
+    function showCvPreviewText(text) {
+        els.cvPreviewPanel.style.display = 'flex';
+        els.cvPreviewLoading.style.display = 'none';
+        els.cvPreviewEmpty.style.display = 'none';
+        els.cvPreviewText.style.display = 'block';
+        els.cvPreviewText.textContent = text;
+    }
+
+    function showCvPreviewEmpty() {
+        els.cvPreviewPanel.style.display = 'none';
+        els.cvPreviewLoading.style.display = 'none';
+        els.cvPreviewText.style.display = 'none';
+        els.cvPreviewText.textContent = '';
+    }
+
+    async function extractAndPreview(file) {
+        showCvPreviewLoading();
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/extract-text', { method: 'POST', body: formData });
+            if (!res.ok) throw new Error('extract failed');
+            const data = await res.json();
+            state.cvText = data.text;
+            showCvPreviewText(data.text || '(No readable text found in this file.)');
+        } catch (err) {
+            console.error(err);
+            showCvPreviewText('Could not read this file. You can still try "Find my matches" — or paste the text instead.');
+        }
+    }
+
+    els.cvPreviewClear.addEventListener('click', () => {
+        state.cvFile = null;
+        state.cvText = '';
+        els.cvFileInput.value = '';
+        showCvPreviewEmpty();
+        renderUpload();
+    });
+
     // File Drag & Drop
     els.dropzone.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -596,12 +800,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.dataTransfer.files.length) {
             state.cvFile = e.dataTransfer.files[0];
             renderUpload();
+            extractAndPreview(state.cvFile);
         }
     });
     els.cvFileInput.addEventListener('change', (e) => {
         if (e.target.files.length) {
             state.cvFile = e.target.files[0];
             renderUpload();
+            extractAndPreview(state.cvFile);
         }
     });
     
@@ -664,7 +870,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let textToProcess = state.cvText;
 
             // If in upload mode and a file is selected, extract text first
-            if (state.inputMode === 'upload' && state.cvFile) {
+            // (skip if the preview panel already extracted this file)
+            if (state.inputMode === 'upload' && state.cvFile && !state.cvText) {
                 const formData = new FormData();
                 formData.append('file', state.cvFile);
                 
