@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: lumina-api
+    runtime: docker
+    dockerfilePath: docker/app.Dockerfile
+    dockerContext: .
+    plan: free             # upgrade to "starter" ($7/mo) for always-on
+    healthCheckPath: /health
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false        # Render prompts you to set this in the dashboard
+      - key: DATABASE_URL
+        sync: false        # same — never commit real values here

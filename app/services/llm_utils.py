@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import logging
 import httpx
@@ -24,16 +25,11 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 # ]
 
 MODELS = [
-    "openrouter/free",  # auto-router, picks an available free model
-    # "openai/gpt-4o-mini",            # put the reliable paid one first
-    "deepseek/deepseek-v3:free"     # one free fallback is enough
-
-    #  "openrouter/free",              # auto-router, picks an available free model
-    #  "deepseek/deepseek-v3:free",
-    #  "qwen/qwen3-coder:free",
-    #  "meta-llama/llama-3.3-70b-instruct:free",
-    #  "nousresearch/hermes-3-llama-3.1-405b:free",
-    #  "openai/gpt-4o-mini",           # cheap paid fallback, not free — remove if you don't want any spend
+    "openrouter/free",                              # auto-router, picks best free model
+    "deepseek/deepseek-v3:free",                   # strong, good JSON output
+    "meta-llama/llama-3.3-70b-instruct:free",      # reliable Llama 70B fallback
+    "google/gemma-3-27b-it:free",                  # Google Gemma fallback
+    "mistralai/mistral-7b-instruct:free",           # lightweight last resort
 ]
 
 async def _openrouter_post(model: str, system: str, prompt: str, timeout: float = 60.0, max_tokens: int = 2000) -> str:
@@ -41,7 +37,7 @@ async def _openrouter_post(model: str, system: str, prompt: str, timeout: float 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:8000",
+        "HTTP-Referer": "https://github.com/eggcoder/Lumina",
         "X-Title": "Lumina Career Navigator"
     }
     payload = {
@@ -67,6 +63,24 @@ async def _openrouter_post(model: str, system: str, prompt: str, timeout: float 
 
         return content
 
+def _safe_json_parse(text: str) -> dict:
+    """Strip markdown fences; attempt JSON parse; fall back to regex block extraction."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r'^```(?:json)?\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+        text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+        raise
+
 async def call_llm(prompt: str, system: str, timeout: float = 60.0, max_tokens: int = 2000) -> dict:
     if not OPENROUTER_API_KEY:
         raise ValueError("OPENROUTER_API_KEY not set")
@@ -75,7 +89,13 @@ async def call_llm(prompt: str, system: str, timeout: float = 60.0, max_tokens: 
         try:
             logger.info(f"Calling OpenRouter with model {model}...")
             response_text = await _openrouter_post(model, system, prompt, timeout=timeout, max_tokens=max_tokens)
-            return json.loads(response_text)
+            return _safe_json_parse(response_text)
+        except httpx.ReadTimeout:
+            logger.warning(f"[LLM] {model} timed out after {timeout}s. Trying next.")
+        except httpx.HTTPStatusError as e:
+            logger.warning(f"[LLM] {model} returned HTTP {e.response.status_code}. Trying next.")
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"[LLM] {model} returned unparseable JSON: {e}. Trying next.")
         except Exception as e:
-            logger.warning(f"Model {model} failed: {e}. Trying next.")
+            logger.warning(f"[LLM] {model} failed ({type(e).__name__}): {e}. Trying next.")
     raise RuntimeError("All LLM models failed")

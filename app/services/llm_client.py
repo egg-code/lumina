@@ -61,7 +61,7 @@ Return a JSON object with a single key "results" which is a list of objects in t
     system_prompt = "You are a career mapping assistant. Always return valid JSON."
 
     try:
-        parsed_json = await call_llm(prompt, system_prompt, timeout=15.0) #timeout=45.0
+        parsed_json = await call_llm(prompt, system_prompt, timeout=45.0)
         results = parsed_json.get("results", [])
             
         # Enrich matches

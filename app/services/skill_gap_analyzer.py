@@ -243,9 +243,9 @@ Return JSON with this exact schema:
     t_start = time.time()
 
     # timeout=15.0 — was uncapped (defaulted to call_llm's 60.0s), so with
-    # 2 models in MODELS that was worst-case 120s per task just from retries.
-    gap_task = asyncio.create_task(call_llm(prompt_a, system_a, timeout=15.0))
-    course_task = asyncio.create_task(call_llm(prompt_b, system_b, timeout=15.0))
+    # parallel calls it could take ~2 minutes. 30s is more reasonable.
+    gap_task = asyncio.create_task(call_llm(prompt_a, system_a, timeout=30.0))
+    course_task = asyncio.create_task(call_llm(prompt_b, system_b, timeout=30.0))
 
     #gap_task = asyncio.create_task(call_llm(prompt_a, system_a))
     #course_task = asyncio.create_task(call_llm(prompt_b, system_b))

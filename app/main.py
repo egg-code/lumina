@@ -49,9 +49,8 @@ if not STATIC_DIR.exists():
 
 # Cited on every /api/match-titles response.
 JOB_TITLE_CORPUS_SOURCE = (
-    "ESCO Occupations Database (European Skills, Competences, "
-    "Qualifications and Occupations). Used for transparent, deterministic "
-    "skill gap analysis."
+    "LLM-powered career matching (OpenRouter). Career paths and skill gaps "
+    "are generated dynamically from the candidate's CV by an LLM."
 )
 
 app = FastAPI(title="ProofPath", version="0.4.0")
@@ -110,7 +109,7 @@ async def match_titles_endpoint(request: MatchTitlesRequest) -> MatchTitlesRespo
 
     return MatchTitlesResponse(
         matches=matches,
-        corpus_size=1000, # Will be replaced once ESCO client counts dynamically, assuming ~1000 for now. Or we can just use 0. Let's use 0.
+        corpus_size=0,
         source=JOB_TITLE_CORPUS_SOURCE,
     )
 
@@ -175,6 +174,11 @@ async def skill_gap_endpoint(request: SkillGapRequest) -> SkillGapResponse:
             status_code=502,
             detail="Gap analysis is temporarily unavailable. Try again in a moment.",
         ) from exc
+
+@app.get("/health")
+async def health_check():
+    """Render health-check probe — always returns 200 if the process is alive."""
+    return {"status": "ok", "version": "0.4.0"}
 
 # Static frontend is mounted last so it never shadows the API routes
 # registered above (Starlette matches routes in registration order).

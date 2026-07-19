@@ -149,7 +149,7 @@ CV TEXT:
 """
 
     try:
-        parsed_json = await call_llm(prompt, system_prompt, timeout=15.0) #timeout=30.0
+        parsed_json = await call_llm(prompt, system_prompt, timeout=30.0)
         
         result = ParsedCV(raw_text=text)
         
