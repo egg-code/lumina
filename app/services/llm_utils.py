@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 # MODELS = [
 #     "openrouter/free",              # auto-router, picks an available free model
@@ -25,20 +25,17 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 # ]
 
 MODELS = [
-    "openrouter/free",                              # auto-router, picks best free model
-    "deepseek/deepseek-v3:free",                   # strong, good JSON output
-    "meta-llama/llama-3.3-70b-instruct:free",      # reliable Llama 70B fallback
-    "google/gemma-3-27b-it:free",                  # Google Gemma fallback
-    "mistralai/mistral-7b-instruct:free",           # lightweight last resort
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
 ]
 
-async def _openrouter_post(model: str, system: str, prompt: str, timeout: float = 60.0, max_tokens: int = 2000) -> str:
-    url = "https://openrouter.ai/api/v1/chat/completions"
+async def _groq_post(model: str, system: str, prompt: str, timeout: float = 60.0, max_tokens: int = 2000) -> str:
+    url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/eggcoder/Lumina",
-        "X-Title": "Lumina Career Navigator"
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
     payload = {
         "model": model,
@@ -82,13 +79,13 @@ def _safe_json_parse(text: str) -> dict:
         raise
 
 async def call_llm(prompt: str, system: str, timeout: float = 60.0, max_tokens: int = 2000) -> dict:
-    if not OPENROUTER_API_KEY:
-        raise ValueError("OPENROUTER_API_KEY not set")
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY not set")
 
     for model in MODELS:
         try:
-            logger.info(f"Calling OpenRouter with model {model}...")
-            response_text = await _openrouter_post(model, system, prompt, timeout=timeout, max_tokens=max_tokens)
+            logger.info(f"Calling Groq API with model {model}...")
+            response_text = await _groq_post(model, system, prompt, timeout=timeout, max_tokens=max_tokens)
             return _safe_json_parse(response_text)
         except httpx.ReadTimeout:
             logger.warning(f"[LLM] {model} timed out after {timeout}s. Trying next.")

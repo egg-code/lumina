@@ -34,11 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnFindMatches: document.getElementById('btn-find-matches'),
         uploadError: document.getElementById('upload-error'),
 
-        cvPreviewPanel: document.getElementById('cvPreviewPanel'),
-        cvPreviewLoading: document.getElementById('cvPreviewLoading'),
-        cvPreviewText: document.getElementById('cvPreviewText'),
-        cvPreviewEmpty: document.getElementById('cvPreviewEmpty'),
-        cvPreviewClear: document.getElementById('cvPreviewClear'),
+
 
         analyzingCard: document.getElementById('analyzing-card'),
         analyzingStatus: document.getElementById('analyzing-status'),
@@ -91,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         backToMatchesBtn: document.getElementById('backToMatchesBtn'),
         //btnBuildSprint: document.getElementById('btn-build-sprint'),
         btnEditCv: document.getElementById('btn-edit-cv'),
-        btnFindJobs: document.getElementById('btn-find-jobs'),
+
         btnGoFeedback: document.getElementById('btn-go-feedback'),
 
         // Feedback Step
@@ -306,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
         els.experienceSkeleton.style.display = 'block';
         els.learningSkeleton.style.display = 'block';
         //els.btnBuildSprint.disabled = true;
-        els.btnFindJobs.disabled = true;
         startGapLoader();
         
         try {
@@ -340,7 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const data = state.currentSkillGapData;
         //els.btnBuildSprint.disabled = false;
-        els.btnFindJobs.disabled = false;
         
         els.skillsHeading.textContent = `Where you stand for ${data.target_title}`;
         els.skillsSubheading.textContent = `See what's already strong on your CV, what overlaps with ${data.target_title}, and what to build next.`;
@@ -597,11 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             state.inputMode = tab.dataset.tab;
             renderUpload();
-            if (state.inputMode === 'paste') {
-                els.cvPreviewPanel.style.display = 'none';
-            } else if (state.cvFile && state.cvText) {
-                showCvPreviewText(state.cvText);
-            }
         });
     });
 
@@ -614,14 +603,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.inputMode = 'paste';
         state.cvText = SAMPLE_CV;
         els.cvTextarea.value = SAMPLE_CV;
-        els.cvPreviewPanel.style.display = 'none';
         renderUpload();
     });
 
-    els.btnViewJobs.addEventListener('click', () => {
-        state.maxStep = Math.max(state.maxStep, 4);
-        goStep('jobs');
-    });
+    // Live jobs step disabled — standalone ETL pipeline pending
+    // els.btnViewJobs.addEventListener('click', () => { goStep('jobs'); });
 
     els.filterLocation.addEventListener('change', (e) => {
         state.filters.location = e.target.value;
@@ -655,10 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     els.btnEditCv.addEventListener('click', () => {
         goStep('upload');
     });
-    els.btnFindJobs.addEventListener('click', () => {
-        //state.maxStep = Math.max(state.maxStep, 4);
-        goStep('matches');
-    });
+    // 'Find a matched job' button removed — live jobs step disabled
 
     // --- Feedback Step ---
     els.btnGoFeedback.addEventListener('click', () => {
@@ -739,52 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
         goStep('matches');
     });
 
-    // --- CV Preview Panel ---
-    function showCvPreviewLoading() {
-        els.cvPreviewPanel.style.display = 'flex';
-        els.cvPreviewLoading.style.display = 'flex';
-        els.cvPreviewText.style.display = 'none';
-        els.cvPreviewEmpty.style.display = 'none';
-    }
-
-    function showCvPreviewText(text) {
-        els.cvPreviewPanel.style.display = 'flex';
-        els.cvPreviewLoading.style.display = 'none';
-        els.cvPreviewEmpty.style.display = 'none';
-        els.cvPreviewText.style.display = 'block';
-        els.cvPreviewText.textContent = text;
-    }
-
-    function showCvPreviewEmpty() {
-        els.cvPreviewPanel.style.display = 'none';
-        els.cvPreviewLoading.style.display = 'none';
-        els.cvPreviewText.style.display = 'none';
-        els.cvPreviewText.textContent = '';
-    }
-
-    async function extractAndPreview(file) {
-        showCvPreviewLoading();
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const res = await fetch('/api/extract-text', { method: 'POST', body: formData });
-            if (!res.ok) throw new Error('extract failed');
-            const data = await res.json();
-            state.cvText = data.text;
-            showCvPreviewText(data.text || '(No readable text found in this file.)');
-        } catch (err) {
-            console.error(err);
-            showCvPreviewText('Could not read this file. You can still try "Find my matches" — or paste the text instead.');
-        }
-    }
-
-    els.cvPreviewClear.addEventListener('click', () => {
-        state.cvFile = null;
-        state.cvText = '';
-        els.cvFileInput.value = '';
-        showCvPreviewEmpty();
-        renderUpload();
-    });
+    // CV Preview Panel removed — file text is extracted on demand when 'Find my matches' is clicked
 
     // File Drag & Drop
     els.dropzone.addEventListener('dragover', (e) => {
@@ -800,14 +738,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.dataTransfer.files.length) {
             state.cvFile = e.dataTransfer.files[0];
             renderUpload();
-            extractAndPreview(state.cvFile);
         }
     });
     els.cvFileInput.addEventListener('change', (e) => {
         if (e.target.files.length) {
             state.cvFile = e.target.files[0];
             renderUpload();
-            extractAndPreview(state.cvFile);
         }
     });
     
