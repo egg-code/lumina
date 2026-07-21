@@ -191,3 +191,12 @@ class SkillGapResponse(BaseModel):
     # Source/quality flag
     enriched_by_llm: bool = True       # False = ESCO fallback only, no courses
 
+
+class FeedbackRequest(BaseModel):
+    name: str = Field(min_length=1)
+    email: str = Field(min_length=3)
+    rating: int = Field(ge=1, le=5)
+    feedback: str = Field(min_length=1)
+    remarks: Optional[str] = ""
+
+

@@ -702,8 +702,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         els.feedbackError.textContent = '';
 
-        // NOTE: UI-only for now — no backend endpoint yet.
-        // Once a /api/feedback endpoint exists, POST the payload here:
         const payload = {
             name,
             email,
@@ -711,10 +709,31 @@ document.addEventListener('DOMContentLoaded', () => {
             feedback,
             remarks: els.fbRemarks.value.trim()
         };
-        console.log('Feedback submitted (UI-only, not yet persisted):', payload);
 
-        els.feedbackFormWrap.style.display = 'none';
-        els.feedbackSuccess.style.display = 'block';
+        els.btnSubmitFeedback.disabled = true;
+        els.btnSubmitFeedback.textContent = 'Submitting...';
+
+        fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to submit feedback');
+            return res.json();
+        })
+        .then(data => {
+            els.feedbackFormWrap.style.display = 'none';
+            els.feedbackSuccess.style.display = 'block';
+        })
+        .catch(err => {
+            console.error('Feedback submission error:', err);
+            els.feedbackError.textContent = 'Failed to submit feedback. Please try again.';
+        })
+        .finally(() => {
+            els.btnSubmitFeedback.disabled = false;
+            els.btnSubmitFeedback.textContent = 'Submit Feedback';
+        });
     });
 
     els.btnFeedbackDone.addEventListener('click', () => {

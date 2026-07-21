@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 import io
 import asyncio
@@ -36,11 +36,13 @@ from app.core.models import (
     TitleMatch,
     LiveJob,
     SkillGapRequest,
-    SkillGapResponse
+    SkillGapResponse,
+    FeedbackRequest,
 )
 from app.services.llm_client import enrich_matches
 from app.db.database import fetch_live_jobs_for_title
 from app.services.skill_gap_analyzer import analyze_skill_gap
+from app.services.email_service import send_feedback_email_task
 
 # Updated robust static directory resolution
 STATIC_DIR = Path("static").resolve()
@@ -174,6 +176,14 @@ async def skill_gap_endpoint(request: SkillGapRequest) -> SkillGapResponse:
             status_code=502,
             detail="Gap analysis is temporarily unavailable. Try again in a moment.",
         ) from exc
+
+
+@app.post("/api/feedback")
+async def feedback_endpoint(request: FeedbackRequest, background_tasks: BackgroundTasks):
+    """Receive user feedback from frontend and send it to luminabornin2026@gmail.com in a background task."""
+    background_tasks.add_task(send_feedback_email_task, request)
+    return {"status": "success", "message": "Feedback received. Thank you!"}
+
 
 @app.get("/health")
 async def health_check():
