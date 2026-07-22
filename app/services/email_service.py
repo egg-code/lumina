@@ -15,6 +15,25 @@ SMTP_USER = os.getenv("SMTP_USER", DESTINATION_EMAIL)
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
 
+class _ForceIPv4Socket:
+    """Context manager to force socket.getaddrinfo to use IPv4 (AF_INET).
+    Prevents '[Errno 101] Network is unreachable' on cloud containers (like Render)
+    that do not support IPv6 outbound connections.
+    """
+
+    def __enter__(self):
+        self._old_getaddrinfo = socket.getaddrinfo
+
+        def _getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+            return self._old_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+        socket.getaddrinfo = _getaddrinfo_ipv4
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        socket.getaddrinfo = self._old_getaddrinfo
+
+
 def _send_email_sync(feedback: FeedbackRequest) -> bool:
     """Synchronous SMTP email sending function to be executed in a background thread."""
     if not SMTP_PASSWORD:
@@ -84,10 +103,16 @@ Remarks:
         msg.attach(MIMEText(plain_text, "plain"))
         msg.attach(MIMEText(html_text, "html"))
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        with _ForceIPv4Socket():
+            if SMTP_PORT == 465:
+                with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
+                    server.login(SMTP_USER, SMTP_PASSWORD)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
+                    server.starttls()
+                    server.login(SMTP_USER, SMTP_PASSWORD)
+                    server.send_message(msg)
 
         logger.info(f"Feedback email successfully sent to {DESTINATION_EMAIL}")
         return True
