@@ -1,79 +1,44 @@
 import os
-import socket
-import smtplib
 import logging
 import asyncio
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 from app.core.models import FeedbackRequest
 
 logger = logging.getLogger(__name__)
 
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 DESTINATION_EMAIL = "luminabornin2026@gmail.com"
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", DESTINATION_EMAIL)
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+FROM_ADDRESS = "Lumina Feedback <onboarding@resend.dev>"
 
 
-class _ForceIPv4Socket:
-    """Context manager to force socket.getaddrinfo to use IPv4 (AF_INET).
-    Prevents '[Errno 101] Network is unreachable' on cloud containers (like Render)
-    that do not support IPv6 outbound connections.
+async def send_feedback_email_task(feedback: FeedbackRequest):
+    """Send user feedback to the destination email via Resend HTTP API.
+
+    Runs as a FastAPI BackgroundTask — the HTTP response is returned to the
+    user immediately while this coroutine fires in the background.
+    Uses HTTPS (port 443) which is always open on Render's free tier,
+    making it immune to the port-587/465 firewall and IPv6 issues of SMTP.
     """
-
-    def __enter__(self):
-        self._old_getaddrinfo = socket.getaddrinfo
-
-        def _getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
-            return self._old_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
-
-        socket.getaddrinfo = _getaddrinfo_ipv4
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        socket.getaddrinfo = self._old_getaddrinfo
-
-
-def _send_email_sync(feedback: FeedbackRequest) -> bool:
-    """Synchronous SMTP email sending function to be executed in a background thread."""
-    if not SMTP_PASSWORD:
+    if not RESEND_API_KEY:
         logger.warning(
-            "SMTP_PASSWORD is not set. Feedback email skipped. "
-            "Please configure SMTP_PASSWORD in .env file to enable Gmail SMTP sending."
+            "RESEND_API_KEY is not set. Feedback email skipped. "
+            "Please add RESEND_API_KEY to your environment variables."
         )
-        return False
+        return
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[Lumina Feedback] Rating: {feedback.rating}★ from {feedback.name}"
-        msg["From"] = SMTP_USER
-        msg["To"] = DESTINATION_EMAIL
-        msg["Reply-To"] = feedback.email
+    stars = "★" * feedback.rating + "☆" * (5 - feedback.rating)
+    feedback_body_html = feedback.feedback.replace("\n", "<br>")
 
-        plain_text = f"""
-New Feedback Received for Lumina!
+    remarks_html = ""
+    if feedback.remarks:
+        formatted_remarks = feedback.remarks.replace("\n", "<br>")
+        remarks_html = (
+            f"<h3>Remarks:</h3>"
+            f"<p style='background: #f9fafb; padding: 15px; border-radius: 6px;'>"
+            f"{formatted_remarks}</p>"
+        )
 
-Name: {feedback.name}
-Email: {feedback.email}
-Rating: {feedback.rating} / 5 stars
-
-Feedback:
-{feedback.feedback}
-
-Remarks:
-{feedback.remarks or 'N/A'}
-"""
-
-        stars = "★" * feedback.rating + "☆" * (5 - feedback.rating)
-        feedback_body_html = feedback.feedback.replace("\n", "<br>")
-
-        remarks_html = ""
-        if feedback.remarks:
-            formatted_remarks = feedback.remarks.replace("\n", "<br>")
-            remarks_html = f"<h3>Remarks:</h3><p style='background: #f9fafb; padding: 15px; border-radius: 6px;'>{formatted_remarks}</p>"
-
-        html_text = f"""
+    html_body = f"""
 <html>
   <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
     <h2 style="color: #4F46E5;">New Feedback Received for Lumina</h2>
@@ -101,27 +66,43 @@ Remarks:
 </html>
 """
 
-        msg.attach(MIMEText(plain_text, "plain"))
-        msg.attach(MIMEText(html_text, "html"))
+    plain_body = (
+        f"New Feedback Received for Lumina!\n\n"
+        f"Name: {feedback.name}\n"
+        f"Email: {feedback.email}\n"
+        f"Rating: {feedback.rating} / 5 stars\n\n"
+        f"Feedback:\n{feedback.feedback}\n\n"
+        f"Remarks:\n{feedback.remarks or 'N/A'}"
+    )
 
-        with _ForceIPv4Socket():
-            if SMTP_PORT == 465:
-                with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
-                    server.login(SMTP_USER, SMTP_PASSWORD)
-                    server.send_message(msg)
-            else:
-                with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
-                    server.starttls()
-                    server.login(SMTP_USER, SMTP_PASSWORD)
-                    server.send_message(msg)
+    payload = {
+        "from": FROM_ADDRESS,
+        "to": [DESTINATION_EMAIL],
+        "reply_to": feedback.email,
+        "subject": f"[Lumina Feedback] Rating: {feedback.rating}★ from {feedback.name}",
+        "html": html_body,
+        "text": plain_body,
+    }
 
-        logger.info(f"Feedback email successfully sent to {DESTINATION_EMAIL}")
-        return True
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            response.raise_for_status()
+            logger.info(
+                f"Feedback email sent via Resend. "
+                f"id={response.json().get('id')} to={DESTINATION_EMAIL}"
+            )
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            f"Resend API returned an error: {e.response.status_code} — {e.response.text}",
+            exc_info=True,
+        )
     except Exception as e:
-        logger.error(f"Failed to send feedback email: {e}", exc_info=True)
-        return False
-
-
-async def send_feedback_email_task(feedback: FeedbackRequest):
-    """Async wrapper to run synchronous SMTP sending in a thread pool background task."""
-    await asyncio.to_thread(_send_email_sync, feedback)
+        logger.error(f"Failed to send feedback email via Resend: {e}", exc_info=True)
