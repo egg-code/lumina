@@ -32,6 +32,11 @@ class LiveJob(BaseModel):
     max_salary: Optional[float] = None
     job_link: Optional[str] = None
     required_skills: Optional[str] = None
+    country: Optional[str] = None
+    source: Optional[str] = None
+    work_arrangement: Optional[str] = None
+    date_posted: Optional[str] = None
+    skills_json: Optional[str] = None
 
 
 class MatchTitlesRequest(BaseModel):

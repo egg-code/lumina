@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Render Functions ---
 
     function renderNav() {
-        const stepOrder = ['upload', 'matches', 'skills', 'feedback', 'sprint', 'jobs'];
+        const stepOrder = ['upload', 'matches', 'skills', 'jobs', 'feedback'];
         const currentIdx = stepOrder.indexOf(state.step) + 1;
 
         els.stepPills.forEach((pill, idx) => {
@@ -226,7 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <p class="match-reasoning">${m.why_fit || `You share ${m.existing_skills.length} core skills for this role, though you'll need to brush up on ${m.missing_skills.length} missing areas.`}</p>
                 <div class="match-note">${m.existing_skills.length} of ${m.existing_skills.length + m.missing_skills.length} required skills already on your CV.</div>
-                <button class="btn-start-sprint" data-idx="${idx}">See skill gap →</button>
+                <div class="match-actions" style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                    <button class="btn-start-sprint" data-idx="${idx}">See skill gap →</button>
+                    ${liveJobCount > 0 ? `<button class="btn-view-match-jobs btn-secondary" data-idx="${idx}">View live jobs (${liveJobCount}) ↗</button>` : ''}
+                </div>
             `;
             els.matchesContainer.appendChild(card);
         });
@@ -240,6 +243,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const match = state.matches[state.selectedMatchIndex];
                 fetchSkillGap(match.title, match.existing_skills, match.missing_skills);
+            });
+        });
+
+        document.querySelectorAll('.btn-view-match-jobs').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                state.selectedMatchIndex = parseInt(e.target.dataset.idx);
+                state.maxStep = Math.max(state.maxStep, 4);
+                goStep('jobs');
             });
         });
     }
@@ -556,6 +567,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const logoColor = getLogoColor(j.company || j.title);
             const isRemote = (j.location || '').toLowerCase().includes('remote') || (j.title || '').toLowerCase().includes('remote');
             
+            const flag = j.country === 'TH' ? '🇹🇭' : (j.country === 'MY' ? '🇲🇾' : (j.country === 'SG' ? '🇸🇬' : '📍'));
+            const portalName = (j.source || '').includes('jobsdb') ? 'JobsDB' : ((j.source || '').includes('jobstreet') ? 'JobStreet' : 'Web');
+            const skillsList = j.required_skills ? j.required_skills.split(',').slice(0, 5).map(s => s.trim()).filter(Boolean) : [];
+
             const minSal = j.min_salary ? Math.round(j.min_salary/1000)+'k' : '';
             const maxSal = j.max_salary ? Math.round(j.max_salary/1000)+'k' : '';
             const salDisplay = minSal && maxSal ? `${minSal} - ${maxSal}` : (minSal || maxSal || 'Salary undisclosed');
@@ -563,8 +578,17 @@ document.addEventListener('DOMContentLoaded', () => {
             card.innerHTML = `
                 <div class="job-icon" style="background:${logoColor}">${(j.company || j.title).charAt(0).toUpperCase()}</div>
                 <div class="job-details">
-                    <div class="job-title">${j.title}</div>
+                    <div class="job-title-row" style="display:flex; align-items:center; gap:8px;">
+                        <span class="job-title">${j.title}</span>
+                        <span class="country-badge" style="font-size:12px; background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px;">${flag} ${j.country || ''}</span>
+                        <span class="portal-badge" style="font-size:11px; background:rgba(99,102,241,0.15); color:#818cf8; padding:2px 6px; border-radius:4px;">${portalName}</span>
+                    </div>
                     <div class="job-meta">${j.company || 'Unknown Company'} · ${j.location || 'Location undisclosed'} · ${salDisplay}</div>
+                    ${skillsList.length > 0 ? `
+                        <div class="job-skills-list" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;">
+                            ${skillsList.map(sk => `<span class="skill-tag" style="font-size:11px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:3px; color:#cbd5e1;">${sk}</span>`).join('')}
+                        </div>
+                    ` : ''}
                 </div>
                 ${isRemote ? '<span class="job-badge-remote">Remote</span>' : ''}
                 <a href="${j.job_link || '#'}" target="_blank" class="job-link">View posting ↗</a>
@@ -606,8 +630,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderUpload();
     });
 
-    // Live jobs step disabled — standalone ETL pipeline pending
-    // els.btnViewJobs.addEventListener('click', () => { goStep('jobs'); });
+    if (els.btnViewJobs) {
+        els.btnViewJobs.addEventListener('click', () => {
+            state.maxStep = Math.max(state.maxStep, 4);
+            goStep('jobs');
+        });
+    }
 
     els.filterLocation.addEventListener('change', (e) => {
         state.filters.location = e.target.value;

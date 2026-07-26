@@ -53,18 +53,13 @@ async def close_db_pool():
         await _pool.close()
         _pool = None
 
-async def fetch_live_jobs_for_title(keyword: str, limit: int = 3) -> List[Dict[str, Any]]:
+async def fetch_live_jobs_for_title(keyword: str, limit: int = 5) -> List[Dict[str, Any]]:
     """
-    Fetch live jobs matching a career title (e.g. "Data Analyst").
+    Fetch live jobs matching a career title (e.g. "Data Analyst" or "Backend Developer").
 
-    Query strategy (dual-path for backwards compatibility):
-      1. PRIMARY — exact match on `esco_title` column (set by ETL from v2 onwards).
-         These are high-confidence matches: the job was tagged with the same ESCO
-         standard title that Lumina assigned to the user's CV.
-      2. FALLBACK — ILIKE fuzzy search on `title` and `required_skills` columns,
-         used for rows inserted before the `esco_title` column was added.
-
-    Both result sets are merged; exact ESCO matches are ranked first.
+    Search strategy:
+      - High-performance ILIKE / Trigram index matching on job title and required_skills.
+      - Exact/prefix title matches ranked first, followed by recency (date_posted DESC).
     """
     global _pool
     if _pool is None:
@@ -73,30 +68,26 @@ async def fetch_live_jobs_for_title(keyword: str, limit: int = 3) -> List[Dict[s
     if _pool is None:
         return []
 
-    # Dual-path query:
-    #   - Rows with a matching esco_title are returned first (ORDER BY rank)
-    #   - Rows without esco_title fall back to ILIKE on title / required_skills
     query = """
         SELECT
-            job_id, title, company, location,
-            min_salary, max_salary, job_link, required_skills,
-            CASE WHEN esco_title = $1 THEN 0 ELSE 1 END AS rank
+            job_id, title, company, location, country,
+            work_arrangement, date_posted, job_link,
+            source, required_skills, skills_json,
+            min_salary, max_salary,
+            CASE WHEN title ILIKE $1 THEN 0 ELSE 1 END AS rank
         FROM "IT_jobs"."IT"
         WHERE
-            esco_title = $1
-            OR (
-                esco_title IS NULL
-                AND (title ILIKE $2 OR required_skills ILIKE $2)
-            )
+            title ILIKE $2
+            OR required_skills ILIKE $2
         ORDER BY rank ASC, date_posted DESC
         LIMIT $3
     """
 
-    search_term = f"%{keyword}%"
+    exact_term = keyword.strip()
+    fuzzy_term = f"%{keyword.strip()}%"
     try:
         async with _pool.acquire() as conn:
-            records = await conn.fetch(query, keyword, search_term, limit)
-            # Strip the internal rank column before returning
+            records = await conn.fetch(query, exact_term, fuzzy_term, limit)
             return [
                 {k: v for k, v in dict(record).items() if k != "rank"}
                 for record in records
