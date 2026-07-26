@@ -81,6 +81,9 @@ def _build_esco_only_fallback(existing_skills: list[str], missing_skills: list[s
         enriched_by_llm=False
     )
 
+from collections import Counter
+from app.db.database import fetch_live_jobs_for_title
+
 async def analyze_skill_gap(
     cv_text: str,
     target_title: str,
@@ -95,6 +98,35 @@ async def analyze_skill_gap(
         ts, cached_res = _cache[cache_key]
         if now - ts < CACHE_TTL_SECONDS:
             return cached_res
+
+    # ---------------------------------------------------------------------------
+    # Real-time labor market data extraction from Live Jobs DB
+    # ---------------------------------------------------------------------------
+    live_jobs = await fetch_live_jobs_for_title(target_title, limit=50)
+    skill_counts = Counter()
+    total_jobs = len(live_jobs)
+    market_demand_map: dict[str, int] = {}
+
+    if total_jobs > 0:
+        for job in live_jobs:
+            req_raw = job.get("required_skills") or ""
+            skills_in_job = [s.strip() for s in req_raw.split(",") if s.strip()]
+            for s in skills_in_job:
+                skill_counts[s.lower()] += 1
+
+        top_market_skills = []
+        for skill_lower, count in skill_counts.most_common(20):
+            pct = int((count / total_jobs) * 100)
+            market_demand_map[skill_lower] = pct
+            top_market_skills.append(f"{skill_lower.title()} ({pct}% of active openings)")
+
+        market_context = f"""
+REAL-TIME LABOR MARKET DATA (Analyzed {total_jobs} active job openings for '{target_title}'):
+Top required skills currently demanded by employers:
+{', '.join(top_market_skills)}
+"""
+    else:
+        market_context = f"REAL-TIME LABOR MARKET DATA: Market listings analyzed for '{target_title}'."
 
     # If we were handed a pre-computed core-skills list (from the job-matches
     # card via job_title_matcher._evaluate_occupation), that list is the
@@ -127,7 +159,7 @@ missing_skills_detail — nothing added, nothing omitted):
     else:
         core_skills_instructions = """
 No pre-computed core skills list was provided (custom role) — determine the
-most relevant skills for this role yourself.
+most relevant skills for this role yourself, prioritizing the top skills from the REAL-TIME LABOR MARKET DATA.
 """
 
     prompt_a = f"""
@@ -135,19 +167,20 @@ USER CV:
 {cv_text}
 
 TARGET ROLE: {target_title}
+
+{market_context}
+
 {core_skills_instructions}
-TASK: Perform a thorough skills and experience gap analysis.
+TASK: Perform a thorough skills and experience gap analysis grounded in the real-time market data above.
 
 Instructions:
-1. For missing_skills_detail: {"Classify only the fixed core skills list above — see FIXED CORE SKILLS LIST instructions." if has_fixed_core_list else "Include ALL skills this role typically requires that the user doesn't clearly have — add domain knowledge, tools, soft skills that are actually needed."}
-2. For excess_skills: List user's skills NOT typically needed for {target_title}.
-3. For experience_gaps: Select the 3-5 MOST RELEVANT experience differences
-   between what the user has done and what this role actually requires day-to-day.
-   Focus on impact, not just titles.
-4. For readiness_label: Be honest and realistic, not overly optimistic. (e.g. "Ready Now", "3-6 months", "6-12 months", "1+ year")
-5. For total_learning_hours_estimate: Sum of hours to become job-ready across
-   all critical missing skills.
-6. Make sure overlapping_skills contains skills the user HAS that are relevant to this role.
+1. For missing_skills_detail: {"Classify only the fixed core skills list above — see FIXED CORE SKILLS LIST instructions." if has_fixed_core_list else "Include ALL skills this role typically requires that the user doesn't clearly have — prioritize top skills listed in REAL-TIME LABOR MARKET DATA above."}
+2. Mark a missing skill as "critical" if it is present in the REAL-TIME LABOR MARKET DATA with high employer demand (>30% of openings).
+3. For excess_skills: List user's skills NOT typically needed for {target_title}.
+4. For experience_gaps: Select the 3-5 MOST RELEVANT experience differences between what the user has done and what this role actually requires day-to-day, specifically addressing top market demands.
+5. For readiness_label: Be honest and realistic, not overly optimistic. (e.g. "Ready Now", "3-6 months", "6-12 months", "1+ year")
+6. For total_learning_hours_estimate: Sum of hours to become job-ready across all critical missing skills.
+7. Make sure overlapping_skills contains skills the user HAS that are relevant to this role.
 
 Return JSON with this exact schema:
 {{
@@ -203,8 +236,12 @@ STRICT FIELD RULES (violating any of these will break the app — follow exactly
     system_b = "You are a learning pathway expert. Recommend specific, real learning resources. Always return valid JSON."
     prompt_b = f"""
 TARGET ROLE: {target_title}
-SKILLS TO LEARN (priority order — critical first):
+
+{market_context}
+
+SKILLS TO LEARN (priority order — critical and high market-demand skills first):
 {json.dumps(missing_skills) if missing_skills else "Identify the 3-5 most critical skills needed for this role and provide resources for them."}
+
 
 For each skill, provide 2-3 learning resources. Rules:
 - Prioritize FREE resources (Coursera free audit, freeCodeCamp, YouTube, official docs, Google certificates, Kaggle Learn, MDN Web Docs)
@@ -280,6 +317,15 @@ Return JSON with this exact schema:
           # consistent with what's actually shown — same pattern used in
           # job_title_matcher._evaluate_occupation.
           match_score = int((len(overlapping_skills) / len(combined_core_skills)) * 100)
+
+      for m_item in missing_skills_detail:
+          if isinstance(m_item, dict):
+              s_name = m_item.get("name", "").strip().lower()
+              if s_name in market_demand_map:
+                  m_item["market_demand_percent"] = market_demand_map[s_name]
+              else:
+                  pct = next((v for k, v in market_demand_map.items() if k in s_name or s_name in k), None)
+                  m_item["market_demand_percent"] = pct
 
       response = SkillGapResponse(
           target_title=target_title,

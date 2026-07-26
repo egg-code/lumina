@@ -153,6 +153,8 @@ class SkillGapItem(BaseModel):
     category: str               # "technical" | "soft" | "domain" | "tool"
     user_has_equivalent: bool   # True if user's CV has a close semantic match
     equivalent_skill: str = ""  # e.g. "Pandas" ≈ "Data Analysis"
+    market_demand_percent: Optional[int] = None  # e.g. 75 (% of live jobs requiring this skill)
+
 
 class CourseResource(BaseModel):
     title: str

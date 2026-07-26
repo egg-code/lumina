@@ -387,7 +387,10 @@ document.addEventListener('DOMContentLoaded', () => {
             : '<span class="skill-empty">No direct overlap yet.</span>';
 
         els.developChips.innerHTML = data.missing_skills_detail.length
-            ? data.missing_skills_detail.map(s => `<span class="skill-chip skill-chip-develop"><span class="skill-chip-icon">↑</span> ${s.name}</span>`).join('')
+            ? data.missing_skills_detail.map(s => {
+                const demandBadge = s.market_demand_percent ? `<span style="font-size:10px; opacity:0.9; background:rgba(239,68,68,0.2); color:#fca5a5; padding:1px 5px; border-radius:3px; margin-left:4px; font-weight:600;">🔥 ${s.market_demand_percent}% of jobs</span>` : '';
+                return `<span class="skill-chip skill-chip-develop"><span class="skill-chip-icon">↑</span> ${s.name}${demandBadge}</span>`;
+            }).join('')
             : '<span class="skill-empty">Nothing left to build!</span>';
             
         // Experience Gaps
