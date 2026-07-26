@@ -91,8 +91,9 @@ async def match_titles_endpoint(request: MatchTitlesRequest) -> MatchTitlesRespo
     #         )
     #     )
 
+    user_skills = [s.name for s in sorted(parsed_cv.skills, key=lambda x: x.weight, reverse=True)]
     live_job_lists = await asyncio.gather(
-        *[fetch_live_jobs_for_title(match.target_title) for match in results]
+        *[fetch_live_jobs_for_title(match.target_title, user_skills=user_skills) for match in results]
     )
     matches = []
     for match, live_job_dicts in zip(results, live_job_lists):

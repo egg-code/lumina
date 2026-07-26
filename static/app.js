@@ -575,20 +575,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxSal = j.max_salary ? Math.round(j.max_salary/1000)+'k' : '';
             const salDisplay = minSal && maxSal ? `${minSal} - ${maxSal}` : (minSal || maxSal || 'Salary undisclosed');
 
+            const fitPct = j.skill_match_percent !== undefined && j.skill_match_percent !== null ? j.skill_match_percent : null;
+            const fitBadgeHtml = fitPct !== null ? `<span class="fit-badge" style="font-size:11px; background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); padding:2px 6px; border-radius:4px; font-weight:600;">🎯 ${fitPct}% Skill Fit</span>` : '';
+
+            const matchedSkills = j.matched_skills || [];
+            const missingSkills = j.missing_skills || [];
+
+            let skillsHtml = '';
+            if (matchedSkills.length > 0 || missingSkills.length > 0) {
+                const matchedBadges = matchedSkills.slice(0, 4).map(sk => `<span class="skill-tag" style="font-size:11px; background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.25); padding:2px 6px; border-radius:3px;">✓ ${sk}</span>`).join('');
+                const missingBadges = missingSkills.slice(0, 3).map(sk => `<span class="skill-tag" style="font-size:11px; background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.08); padding:2px 6px; border-radius:3px;">+ ${sk}</span>`).join('');
+                skillsHtml = `<div class="job-skills-list" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;">${matchedBadges}${missingBadges}</div>`;
+            } else if (skillsList.length > 0) {
+                skillsHtml = `<div class="job-skills-list" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;">${skillsList.map(sk => `<span class="skill-tag" style="font-size:11px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:3px; color:#cbd5e1;">${sk}</span>`).join('')}</div>`;
+            }
+
             card.innerHTML = `
                 <div class="job-icon" style="background:${logoColor}">${(j.company || j.title).charAt(0).toUpperCase()}</div>
                 <div class="job-details">
-                    <div class="job-title-row" style="display:flex; align-items:center; gap:8px;">
+                    <div class="job-title-row" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span class="job-title">${j.title}</span>
+                        ${fitBadgeHtml}
                         <span class="country-badge" style="font-size:12px; background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px;">${flag} ${j.country || ''}</span>
                         <span class="portal-badge" style="font-size:11px; background:rgba(99,102,241,0.15); color:#818cf8; padding:2px 6px; border-radius:4px;">${portalName}</span>
                     </div>
                     <div class="job-meta">${j.company || 'Unknown Company'} · ${j.location || 'Location undisclosed'} · ${salDisplay}</div>
-                    ${skillsList.length > 0 ? `
-                        <div class="job-skills-list" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;">
-                            ${skillsList.map(sk => `<span class="skill-tag" style="font-size:11px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:3px; color:#cbd5e1;">${sk}</span>`).join('')}
-                        </div>
-                    ` : ''}
+                    ${skillsHtml}
                 </div>
                 ${isRemote ? '<span class="job-badge-remote">Remote</span>' : ''}
                 <a href="${j.job_link || '#'}" target="_blank" class="job-link">View posting ↗</a>

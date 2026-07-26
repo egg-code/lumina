@@ -37,6 +37,10 @@ class LiveJob(BaseModel):
     work_arrangement: Optional[str] = None
     date_posted: Optional[str] = None
     skills_json: Optional[str] = None
+    matched_skills: list[str] = Field(default_factory=list)
+    missing_skills: list[str] = Field(default_factory=list)
+    skill_match_percent: Optional[int] = None
+
 
 
 class MatchTitlesRequest(BaseModel):
