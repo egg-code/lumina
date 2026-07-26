@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import asyncio
 import logging
 import httpx
 from dotenv import load_dotenv
@@ -10,25 +11,12 @@ logger = logging.getLogger(__name__)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
-# MODELS = [
-#     "openrouter/free",              # auto-router, picks an available free model
-#     "deepseek/deepseek-v3:free",
-#     "qwen/qwen3-coder:free",
-#     "meta-llama/llama-3.3-70b-instruct:free",
-
-#     "nousresearch/hermes-3-llama-3.1-405b:free",
-#     "google/gemma-4-31b-it:free",
-#     "nvidia/nemotron-3-ultra-550b-a55b:free",
-#     "openai/gpt-4o-mini:free"
-
-    
-# ]
-
 MODELS = [
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
-    "mixtral-8x7b-32768",
-    "gemma2-9b-it",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
+    "qwen-2.5-32b",
 ]
 
 async def _groq_post(model: str, system: str, prompt: str, timeout: float = 60.0, max_tokens: int = 2000) -> str:
@@ -90,9 +78,14 @@ async def call_llm(prompt: str, system: str, timeout: float = 60.0, max_tokens: 
         except httpx.ReadTimeout:
             logger.warning(f"[LLM] {model} timed out after {timeout}s. Trying next.")
         except httpx.HTTPStatusError as e:
-            logger.warning(f"[LLM] {model} returned HTTP {e.response.status_code}. Trying next.")
+            if e.response.status_code == 429:
+                logger.warning(f"[LLM] {model} hit rate limit (HTTP 429). Sleeping 1.5s before next model...")
+                await asyncio.sleep(1.5)
+            else:
+                logger.warning(f"[LLM] {model} returned HTTP {e.response.status_code}. Trying next.")
         except (json.JSONDecodeError, ValueError) as e:
             logger.warning(f"[LLM] {model} returned unparseable JSON: {e}. Trying next.")
         except Exception as e:
             logger.warning(f"[LLM] {model} failed ({type(e).__name__}): {e}. Trying next.")
     raise RuntimeError("All LLM models failed")
+
