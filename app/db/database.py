@@ -53,19 +53,12 @@ async def close_db_pool():
         await _pool.close()
         _pool = None
 
+from app.core.skills_taxonomy import check_skill_match, calculate_weighted_fit, normalize_skill
+from app.services.title_utils import get_title_search_parameters
+
 def is_skill_match(cand_skill: str, job_skill: str) -> bool:
-    """Check if candidate skill matches job required skill using exact/boundary matching."""
-    c_norm = cand_skill.strip().lower()
-    j_norm = job_skill.strip().lower()
-    if not c_norm or not j_norm:
-        return False
-    if c_norm == j_norm:
-        return True
-    if len(c_norm) > 2 and len(j_norm) > 2:
-        if c_norm in j_norm or j_norm in c_norm:
-            return True
-    pattern = rf"\b{re.escape(c_norm)}\b"
-    return bool(re.search(pattern, j_norm))
+    """Check if candidate skill matches job required skill using taxonomy & fuzzy rules."""
+    return check_skill_match(cand_skill, job_skill)
 
 
 async def fetch_live_jobs_by_skills(
@@ -74,8 +67,8 @@ async def fetch_live_jobs_by_skills(
     limit: int = 5
 ) -> List[Dict[str, Any]]:
     """
-    Fetch live jobs matching a candidate's CV skills and optional target career title.
-    Calculates matched skills, missing skills, and skill match score percentage.
+    Fetch live jobs matching a candidate's CV skills and target career title.
+    Employs multi-tier title search, negative domain filtering, and taxonomy skill matching.
     """
     global _pool
     if _pool is None:
@@ -86,8 +79,16 @@ async def fetch_live_jobs_by_skills(
 
     clean_user_skills = [s.strip() for s in user_skills if s and len(s.strip()) > 0]
     fuzzy_skills = [f"%{s}%" for s in clean_user_skills[:15]]
-    fuzzy_title = f"%{target_title.strip()}%" if target_title and target_title.strip() else "%"
 
+    clean_title, core_keywords, neg_keywords = get_title_search_parameters(target_title)
+    
+    fuzzy_title = f"%{clean_title}%" if clean_title else "%"
+    
+    # Create keyword patterns for multi-tier matching
+    kw1 = f"%{core_keywords[0]}%" if len(core_keywords) > 0 else "%"
+    kw2 = f"%{core_keywords[1]}%" if len(core_keywords) > 1 else "%"
+
+    # SQL query with multi-tier title priority and skill fallback
     query = """
         SELECT
             job_id, title, company, location, country,
@@ -96,21 +97,35 @@ async def fetch_live_jobs_by_skills(
             min_salary, max_salary
         FROM "IT_jobs"."IT"
         WHERE
-            (array_length($1::text[], 1) IS NOT NULL AND required_skills ILIKE ANY ($1::text[]))
-            OR ($2 <> '%' AND title ILIKE $2)
-        ORDER BY date_posted DESC
+            ($2 <> '%' AND title ILIKE $2)
+            OR ($3 <> '%' AND $4 <> '%' AND title ILIKE $3 AND title ILIKE $4)
+            OR ($3 <> '%' AND title ILIKE $3)
+            OR (array_length($1::text[], 1) IS NOT NULL AND required_skills ILIKE ANY ($1::text[]))
+        ORDER BY 
+            CASE WHEN $2 <> '%' AND title ILIKE $2 THEN 3
+                 WHEN $3 <> '%' AND $4 <> '%' AND title ILIKE $3 AND title ILIKE $4 THEN 2
+                 WHEN $3 <> '%' AND title ILIKE $3 THEN 1
+                 ELSE 0 END DESC,
+            date_posted DESC
         LIMIT 100
     """
 
     try:
         async with _pool.acquire() as conn:
-            records = await conn.fetch(query, fuzzy_skills, fuzzy_title)
+            records = await conn.fetch(query, fuzzy_skills, fuzzy_title, kw1, kw2)
 
         scored_jobs = []
         target_title_lower = target_title.lower() if target_title else ""
+        clean_title_lower = clean_title.lower() if clean_title else ""
 
         for rec in records:
             job_dict = dict(rec)
+            job_title_lower = (job_dict.get("title") or "").lower()
+
+            # Domain Negative Exclusion Filter
+            if any(neg in job_title_lower for neg in neg_keywords):
+                continue
+
             req_skills_raw = job_dict.get("required_skills") or ""
             job_skills = [s.strip() for s in req_skills_raw.split(",") if s.strip()]
 
@@ -118,28 +133,29 @@ async def fetch_live_jobs_by_skills(
             missing = []
 
             for js in job_skills:
-                is_matched = any(is_skill_match(us, js) for us in clean_user_skills)
+                is_matched = any(check_skill_match(us, js) for us in clean_user_skills)
                 if is_matched:
                     matched.append(js)
                 else:
                     missing.append(js)
 
-            if job_skills:
-                match_pct = int((len(matched) / len(job_skills)) * 100)
-            else:
-                match_pct = 50
+            # Calculate weighted skill fit percentage using taxonomy engine
+            match_pct = calculate_weighted_fit(matched, job_skills)
 
-            # Title similarity score
-            job_title_lower = (job_dict.get("title") or "").lower()
+            # Title similarity score calculation
             title_boost = 0
-            if target_title_lower:
-                if target_title_lower in job_title_lower or job_title_lower in target_title_lower:
-                    title_boost = 30
-                elif any(word in job_title_lower for word in target_title_lower.split() if len(word) > 3):
-                    title_boost = 15
+            if clean_title_lower:
+                if clean_title_lower == job_title_lower:
+                    title_boost = 2000
+                elif clean_title_lower in job_title_lower or job_title_lower in clean_title_lower:
+                    title_boost = 1000
+                elif len(core_keywords) > 1 and all(kw.lower() in job_title_lower for kw in core_keywords):
+                    title_boost = 800
+                elif any(kw.lower() in job_title_lower for kw in core_keywords):
+                    title_boost = 400
 
-            # Total ranking score prioritize number of matched skills + percentage + title fit
-            total_rank = (len(matched) * 25) + match_pct + title_boost
+            # Ranking score: Title match > Weighted Skill Fit > Matched Count
+            total_rank = title_boost + (match_pct * 2) + len(matched)
 
             job_dict["matched_skills"] = matched
             job_dict["missing_skills"] = missing
@@ -148,7 +164,7 @@ async def fetch_live_jobs_by_skills(
 
             scored_jobs.append(job_dict)
 
-        # Sort by total rank score descending, then date_posted
+        # Sort by total rank score descending
         scored_jobs.sort(
             key=lambda x: (x["_rank"], x["skill_match_percent"], len(x["matched_skills"]), x.get("date_posted") or ""),
             reverse=True
