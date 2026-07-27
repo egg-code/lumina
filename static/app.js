@@ -87,8 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         backToMatchesBtn: document.getElementById('backToMatchesBtn'),
         //btnBuildSprint: document.getElementById('btn-build-sprint'),
         btnEditCv: document.getElementById('btn-edit-cv'),
-
-        btnGoFeedback: document.getElementById('btn-go-feedback'),
+        btnGoJobs: document.getElementById('btn-go-jobs'),
 
         // Feedback Step
         feedbackFormWrap: document.getElementById('feedback-form-wrap'),
@@ -117,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
         filterRemote: document.getElementById('filter-remote'),
         jobsCount: document.getElementById('jobs-count'),
         jobsList: document.getElementById('jobs-list'),
+        btnJobsEditCv: document.getElementById('btn-jobs-edit-cv'),
+        btnJobsGoFeedback: document.getElementById('btn-jobs-go-feedback'),
     };
 
     const SAMPLE_CV = "Marketing coordinator with 4 years of experience running paid social campaigns and reporting on performance in Excel and SQL. Recently completed a part-time coding bootcamp covering JavaScript, React, and databases. Built and deployed two personal projects — a budgeting app and a portfolio site — on Vercel. Comfortable with Git, basic scripting, and cross-functional communication from client-facing work.";
@@ -686,11 +687,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // 'Find a matched job' button removed — live jobs step disabled
 
-    // --- Feedback Step ---
-    els.btnGoFeedback.addEventListener('click', () => {
+    // Skill gap → Live Jobs
+    els.btnGoJobs.addEventListener('click', () => {
         state.maxStep = Math.max(state.maxStep, 4);
+        goStep('jobs');
+    });
+
+    // --- Live Jobs Buttons ---
+    els.btnJobsEditCv.addEventListener('click', () => {
+        goStep('upload');
+    });
+
+    els.btnJobsGoFeedback.addEventListener('click', () => {
+        state.maxStep = Math.max(state.maxStep, 5);
         goStep('feedback');
     });
+
+    els.backToSkillsBtn.addEventListener('click', () => {
+        
+    // --- Feedback Step ---
+    //els.btnGoFeedback.addEventListener('click', () => {
+    //    state.maxStep = Math.max(state.maxStep, 4);
+    //    goStep('feedback');
+    //});
 
     els.backToSkillsBtn.addEventListener('click', () => {
         goStep('skills');
