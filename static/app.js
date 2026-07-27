@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         backToMatchesBtn: document.getElementById('backToMatchesBtn'),
         //btnBuildSprint: document.getElementById('btn-build-sprint'),
         btnEditCv: document.getElementById('btn-edit-cv'),
+
         btnGoJobs: document.getElementById('btn-go-jobs'),
 
         // Feedback Step
@@ -685,31 +686,23 @@ document.addEventListener('DOMContentLoaded', () => {
     els.btnEditCv.addEventListener('click', () => {
         goStep('upload');
     });
-    // 'Find a matched job' button removed — live jobs step disabled
 
-    // Skill gap → Live Jobs
+    // Skill gap → Live jobs
     els.btnGoJobs.addEventListener('click', () => {
         state.maxStep = Math.max(state.maxStep, 4);
         goStep('jobs');
     });
 
-    // --- Live Jobs Buttons ---
+    // Live jobs → Edit & re-upload CV / Share feedback
     els.btnJobsEditCv.addEventListener('click', () => {
         goStep('upload');
     });
-
     els.btnJobsGoFeedback.addEventListener('click', () => {
         state.maxStep = Math.max(state.maxStep, 5);
         goStep('feedback');
     });
 
-    els.backToSkillsBtn.addEventListener('click', () => {
-        
     // --- Feedback Step ---
-    //els.btnGoFeedback.addEventListener('click', () => {
-    //    state.maxStep = Math.max(state.maxStep, 4);
-    //    goStep('feedback');
-    //});
 
     els.backToSkillsBtn.addEventListener('click', () => {
         goStep('skills');
